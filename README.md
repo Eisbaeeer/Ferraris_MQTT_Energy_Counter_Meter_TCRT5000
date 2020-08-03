@@ -34,7 +34,7 @@ Printable enclosures are available on thingiverse.
 
 ## Changelog 
 
-### 0.1
+### Version 0.1
 (Eisbaeeer 20200803)   
 - Initial Version   
 - Filesystem to store and read values from   
