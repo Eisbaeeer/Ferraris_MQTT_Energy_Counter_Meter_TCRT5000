@@ -35,15 +35,15 @@ Printable enclosures are available on thingiverse.
 ## Changelog 
 
 ### 0.1
-- (Eisbaeeer)   
-Initial Version   
-Filesystem to store and read values from   
-Wifi-Manager to connect to Wifi easy   
-Stored values are in JSON format   
-MQTT client to publish values   
-HTTP page for configuration   
-Over the air update of firmware   
-four meter counter (IR-Input pins)   
+(Eisbaeeer 20200803)   
+- Initial Version   
+- Filesystem to store and read values from   
+- Wifi-Manager to connect to Wifi easy   
+- Stored values are in JSON format   
+- MQTT client to publish values   
+- HTTP page for configuration   
+- Over the air update of firmware   
+- four meter counter (IR-Input pins)   
 
 ## License
 The MIT License (MIT)
