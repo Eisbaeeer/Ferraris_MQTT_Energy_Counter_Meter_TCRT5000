@@ -20,6 +20,14 @@
 
   History
 
+  Ver. 0.3 (20200824)
+  (Eisbaeeer)
+  - OTA per Webbrowser (http://.../update)
+
+  Ver. 0.2 (20200911)
+  (Eisbaeeer)
+  - Anpassung Entprellzeit (20ms)
+
   Ver. 0.1 (20200803)
   (Eisbaeeer)
   * initial version
@@ -54,6 +62,7 @@
 #include <ArduinoJson.h>          // https://github.com/bblanchon/ArduinoJson
 #include <PubSubClient.h>
 #include <ArduinoOTA.h>
+#include <ESP8266HTTPUpdateServer.h>
 
 // Infrared vars
 #define IRPIN1 D1
@@ -68,7 +77,7 @@
 #define SILVER3 HIGH
 #define RED4 LOW
 #define SILVER4 HIGH
-#define MINTIME 20    //in 10ms = 200ms
+#define MINTIME 2    //in 10ms = 20ms
 
 bool lastState1 = 0;  // 0 = Silver->Red; 1 = Red->Silver
 bool lastState2 = 0;  
@@ -101,6 +110,7 @@ int mqttReconnect;            // timeout for reconnecting MQTT Server
 // Set web server port number to 80
 //WiFiServer server(80);
 ESP8266WebServer server ( 80 );
+ESP8266HTTPUpdateServer httpUpdater(true);
 
 // Variable to store the HTTP request
 String webString="";
@@ -397,6 +407,7 @@ void setup() {
   // HTTP Server
   server.on ( "/", handleRoot );
   server.on ("/save", handleSave);
+  httpUpdater.setup(&server);          // /update for upload .bin files
   server.begin();
   Serial.println ( "HTTP server started" );
   

@@ -34,6 +34,14 @@ Printable enclosures are available on thingiverse.
 
 ## Changelog 
 
+### Version 0.3
+(Eisbaeeer)   
+- adding upload of firmware bin files via webpage (http://.../update)
+
+### Version 0.2
+(Eisbaeeer 20200911)   
+- fixing debounce to 20ms   
+
 ### Version 0.1
 (Eisbaeeer 20200803)   
 - Initial Version   
