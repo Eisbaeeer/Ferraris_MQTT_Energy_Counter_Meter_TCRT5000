@@ -32,6 +32,10 @@ Printable enclosures are available on thingiverse.
 - iobroker forum: https://forum.iobroker.net/topic/35404/ferraris-z%C3%A4hler-mit-tcrt5000-und-esp8266
 - thingiverse: https://www.thingiverse.com/thing:4560681
 
+## ToDo
+- adding MQTT port
+- sending of MQTT publish configurable (for more impulses)
+
 ## Changelog 
 
 ### Version 0.3
