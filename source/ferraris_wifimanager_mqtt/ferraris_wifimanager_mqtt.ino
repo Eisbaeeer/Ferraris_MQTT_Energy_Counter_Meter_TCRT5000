@@ -20,6 +20,18 @@
 
   History
 
+  Ver. 0.4 (20200905)
+  (Eisbaeeer)
+  - Bugfix Zähler 3 und 4 (Zählerstand)
+  - Neu: MQTT Server Port konfigurierbar
+  - Neu: MQTT publish Zeit einstellbar (1-9999 Sekunden)
+  - Blinken der internen LED aus kompatibilitätsgründen von anderen Boards entfernt (manche Boards nutzen D4 für die interne LED)
+  (ACHTUNG: mit dieser Version gehen die Zählerdaten verloren! bitte über Browser neu eintragen!)
+  (Im Code bitte die Zeilen: "SPIFFS.format();" auskommentieren, hochladen, wieder kommentieren und hochladen)
+  (Danach über den Browser die Werte neu eingeben!)  
+  - Neu: Port D4 auf D5 umgezogen! (D4 ist bei manchen Boards die interne LED
+  - Neu: Alle Zählerdaten werden im EEPROM abgespeichert.
+
   Ver. 0.3 (20200824)
   (Eisbaeeer)
   - OTA per Webbrowser (http://.../update)
@@ -63,12 +75,13 @@
 #include <PubSubClient.h>
 #include <ArduinoOTA.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <EEPROM.h>
 
 // Infrared vars
 #define IRPIN1 D1
 #define IRPIN2 D2
 #define IRPIN3 D3
-#define IRPIN4 D4
+#define IRPIN4 D5
 #define RED1 LOW
 #define SILVER1 HIGH
 #define RED2 LOW
@@ -100,12 +113,12 @@ bool startup2=true;
 bool startup3=true;
 bool startup4=true;
 
-// no more delay with interval with LED blinking
-int ledState = LOW;
+// no more delay with interval 
 unsigned long previousMillis = 0;
 const long interval = 1000;   // one second
 int seconds;                  // var for counting seconds
 int mqttReconnect;            // timeout for reconnecting MQTT Server
+int mqttPublishTime;          // last publish time in seconds
 
 // Set web server port number to 80
 //WiFiServer server(80);
@@ -117,26 +130,28 @@ String webString="";
 String header;
 
 // Assign variables for ir-counter, electricity meter, mqtt parameter
-char messure_place[40];
-char mqtt_server[40];
-char mqtt_user[40];
-char mqtt_password[40];
+char messure_place[20];
+char mqtt_server[20];
+char mqtt_port[5];
+char mqtt_publish[5];
+char mqtt_user[20];
+char mqtt_password[20];
 char meter_counter_reading_1[10];    // energy counter
 char meter_counter_reading_2[10];    
 char meter_counter_reading_3[10];    
 char meter_counter_reading_4[10];    
-int counter_reading_1;
-int counter_reading_2;
-int counter_reading_3;
-int counter_reading_4;
+int counter_reading_1 = 0;
+int counter_reading_2 = 0;
+int counter_reading_3 = 0;
+int counter_reading_4 = 0;
 float flo_meter_counter_reading_1;  // actual power
 float flo_meter_counter_reading_2;  
 float flo_meter_counter_reading_3;  
 float flo_meter_counter_reading_4;  
-char meter_loops_count_1[4];        // rounds per KWh
-char meter_loops_count_2[4];        
-char meter_loops_count_3[4];        
-char meter_loops_count_4[4];        
+char meter_loops_count_1[6];        // rounds per KWh
+char meter_loops_count_2[6];        
+char meter_loops_count_3[6];        
+char meter_loops_count_4[6];        
 int loops_count_1 = 75;
 int loops_count_2 = 75;
 int loops_count_3 = 75;
@@ -149,10 +164,12 @@ char char_meter_kw_1[6];
 char char_meter_kw_2[6];
 char char_meter_kw_3[6];
 char char_meter_kw_4[6];
-float Meter_KW_1;
-float Meter_KW_2;
-float Meter_KW_3;
-float Meter_KW_4;
+float Meter_KW_1 = 0;
+float Meter_KW_2 = 0;
+float Meter_KW_3 = 0;
+float Meter_KW_4 = 0;
+
+#include "Eprom.h"
 
 char htmlResponse1[3000];
 char htmlResponse2[3000];
@@ -245,68 +262,9 @@ void setup() {
   pinMode(IRPIN2, INPUT_PULLUP);
   pinMode(IRPIN3, INPUT_PULLUP);
   pinMode(IRPIN4, INPUT_PULLUP);
-  pinMode(LED_BUILTIN, OUTPUT);
   
   // !!! clean FS, for testing
-  //SPIFFS.format();
-  
-  //read configuration from FS json
-  Serial.println("mounting FS...");
-
-  if (SPIFFS.begin()) {
-    Serial.println("mounted file system");
-    if (SPIFFS.exists("/config.json")) {
-      //file exists, reading and loading
-      Serial.println("reading config file");
-      File configFile = SPIFFS.open("/config.json", "r");
-      if (configFile) {
-        Serial.println("opened config file");
-        size_t size = configFile.size();
-        // Allocate a buffer to store contents of the file.
-        std::unique_ptr<char[]> buf(new char[size]);
-
-        configFile.readBytes(buf.get(), size);
-        DynamicJsonBuffer jsonBuffer;
-        JsonObject& json = jsonBuffer.parseObject(buf.get());
-        json.printTo(Serial);
-        if (json.success()) {
-          Serial.println("\nparsed json");
-          //strcpy(output, json["output"]);
-          strcpy(messure_place, json["messure_place"]);
-          strcpy(mqtt_server, json["mqtt_server"]);
-          strcpy(mqtt_user, json["mqtt_user"]);
-          strcpy(mqtt_password, json["mqtt_password"]);
-          strcpy(meter_counter_reading_1, json["meter_counter_reading_1"]);
-          strcpy(meter_loops_count_1, json["meter_loops_count_1"]);
-          strcpy(meter_counter_reading_2, json["meter_counter_reading_2"]);
-          strcpy(meter_loops_count_2, json["meter_loops_count_2"]);
-          strcpy(meter_counter_reading_3, json["meter_counter_reading_3"]);
-          strcpy(meter_loops_count_3, json["meter_loops_count_3"]);
-          strcpy(meter_counter_reading_4, json["meter_counter_reading_4"]);
-          strcpy(meter_loops_count_4, json["meter_loops_count_4"]);
-        } else {
-          Serial.println("failed to load json config");
-        }
-      }
-    }
-  } else {
-    Serial.println("failed to mount FS");
-  }
-  //end read
-  
-  //WiFiManagerParameter custom_output("output", "output", output, 2);
-  WiFiManagerParameter custom_messure_place("messure_place", "Meßstellen Bezeichnung", messure_place, 40);
-  WiFiManagerParameter custom_mqtt_server("server", "mqtt server ip", mqtt_server, 40);
-  WiFiManagerParameter custom_mqtt_user("user", "mqtt user name", mqtt_user, 40);
-  WiFiManagerParameter custom_mqtt_password("password", "mqtt password", mqtt_password, 40);
-  WiFiManagerParameter custom_meter_counter_reading_1("Zählerstand Zähler 1", "Zählerstand Zähler 1", meter_counter_reading_1, 8);
-  WiFiManagerParameter custom_meter_loops_count_1("Umdrehungen pro KWh Zähler 1", "Umdrehungen pro KWh Zähler 1", meter_loops_count_1, 3);
-  WiFiManagerParameter custom_meter_counter_reading_2("Zählerstand Zähler 2", "Zählerstand Zähler 2", meter_counter_reading_2, 8);
-  WiFiManagerParameter custom_meter_loops_count_2("Umdrehungen pro KWh Zähler 2", "Umdrehungen pro KWh Zähler 2", meter_loops_count_2, 3);
-  WiFiManagerParameter custom_meter_counter_reading_3("Zählerstand Zähler 3", "Zählerstand Zähler 3", meter_counter_reading_3, 8);
-  WiFiManagerParameter custom_meter_loops_count_3("Umdrehungen pro KWh Zähler 3", "Umdrehungen pro KWh Zähler 3", meter_loops_count_3, 3);
-  WiFiManagerParameter custom_meter_counter_reading_4("Zählerstand Zähler 4", "Zählerstand Zähler 4", meter_counter_reading_4, 8);
-  WiFiManagerParameter custom_meter_loops_count_4("Umdrehungen pro KWh Zähler 4", "Umdrehungen pro KWh Zähler 4", meter_loops_count_4, 3);
+  // SPIFFS.format();
   
   // WiFiManager
   // Local intialization. Once its business is done, there is no need to keep it around
@@ -320,21 +278,9 @@ void setup() {
 
   //add all your parameters here
   //wifiManager.addParameter(&custom_output);
-  wifiManager.addParameter(&custom_messure_place);
-  wifiManager.addParameter(&custom_mqtt_server);
-  wifiManager.addParameter(&custom_mqtt_user);
-  wifiManager.addParameter(&custom_mqtt_password);
-  wifiManager.addParameter(&custom_meter_counter_reading_1);
-  wifiManager.addParameter(&custom_meter_loops_count_1);
-  wifiManager.addParameter(&custom_meter_counter_reading_2);
-  wifiManager.addParameter(&custom_meter_loops_count_2);
-  wifiManager.addParameter(&custom_meter_counter_reading_3);
-  wifiManager.addParameter(&custom_meter_loops_count_3);
-  wifiManager.addParameter(&custom_meter_counter_reading_4);
-  wifiManager.addParameter(&custom_meter_loops_count_4);
-  
+   
   // !!! Uncomment and run it once, if you want to erase all the stored information
-  //wifiManager.resetSettings();
+  // wifiManager.resetSettings();
   
   //set minimu quality of signal so it ignores AP's under that quality
   //defaults to 8%
@@ -361,38 +307,14 @@ void setup() {
   Serial.println(ip);
   
   //strcpy(output, custom_output.getValue());
-  strcpy(messure_place, custom_messure_place.getValue());
-  strcpy(mqtt_server, custom_mqtt_server.getValue());
-  strcpy(mqtt_user, custom_mqtt_user.getValue());
-  strcpy(mqtt_password, custom_mqtt_password.getValue());
-  strcpy(meter_counter_reading_1, custom_meter_counter_reading_1.getValue());
-  strcpy(meter_loops_count_1, custom_meter_loops_count_1.getValue());
-  strcpy(meter_counter_reading_2, custom_meter_counter_reading_2.getValue());
-  strcpy(meter_loops_count_2, custom_meter_loops_count_2.getValue());
-  strcpy(meter_counter_reading_3, custom_meter_counter_reading_3.getValue());
-  strcpy(meter_loops_count_3, custom_meter_loops_count_3.getValue());
-  strcpy(meter_counter_reading_4, custom_meter_counter_reading_4.getValue());
-  strcpy(meter_loops_count_4, custom_meter_loops_count_4.getValue());
-
+ 
   //save the custom parameters to FS
   if (shouldSaveConfig) {
     Serial.println("saving config");
     DynamicJsonBuffer jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
     //json["output"] = output;
-    json["messure_place"] = messure_place;
-    json["mqtt_server"] = mqtt_server;
-    json["mqtt_user"] = mqtt_user;
-    json["mqtt_password"] = mqtt_password;
-    json["meter_counter_reading_1"] = meter_counter_reading_1;
-    json["meter_loops_count_1"] = meter_loops_count_1;
-    json["meter_counter_reading_2"] = meter_counter_reading_2;
-    json["meter_loops_count_2"] = meter_loops_count_2;
-    json["meter_counter_reading_3"] = meter_counter_reading_3;
-    json["meter_loops_count_3"] = meter_loops_count_3;
-    json["meter_counter_reading_4"] = meter_counter_reading_4;
-    json["meter_loops_count_4"] = meter_loops_count_4;
-
+  
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile) {
       Serial.println("failed to open config file for writing");
@@ -410,25 +332,23 @@ void setup() {
   httpUpdater.setup(&server);          // /update for upload .bin files
   server.begin();
   Serial.println ( "HTTP server started" );
-  
-  MQTTclient.setServer(mqtt_server, 1883);
-  MQTTclient.setCallback(callback);
 
-  // read the global vars from char
+  ReadEEPROM();
+  // convert the global vars from char
   counter_reading_1 = atoi(meter_counter_reading_1);
   loops_count_1 = atoi(meter_loops_count_1);
   counter_reading_2 = atoi(meter_counter_reading_2);
   loops_count_2 = atoi(meter_loops_count_2);
+  counter_reading_3 = atoi(meter_counter_reading_3);
+  loops_count_3 = atoi(meter_loops_count_3);
+  counter_reading_4 = atoi(meter_counter_reading_4);
+  loops_count_4 = atoi(meter_loops_count_4);
 
-  Serial.println(" DEBUG ");
-  Serial.print("counter_reading_1: ");
-  Serial.println(counter_reading_1);
-  Serial.print("loops_count_1: ");
-  Serial.println(loops_count_1);
-  Serial.print("counter_reading_2: ");
-  Serial.println(counter_reading_2);
-  Serial.print("loops_count_2: ");
-  Serial.println(loops_count_2);
+
+  int int_mqtt_port = atoi(mqtt_port);
+  int int_mqtt_publish = atoi(mqtt_publish);
+  MQTTclient.setServer(mqtt_server, int_mqtt_port);
+  MQTTclient.setCallback(callback);
   
   // OTA Part
   // Port defaults to 8266
@@ -585,16 +505,13 @@ void calcPower1(void)  {
     counter_reading_1++;
     loops_actual_1 = 1;
     itoa(counter_reading_1, meter_counter_reading_1, 10);   //convert int to char
-    store_values();
+    SaveEEPROM();
     }
     
     Serial.print("meter_counter_reading_1 :");
     Serial.print(counter_reading_1);
     Serial.println(" KWh");
   
-    // publish data
-    PublishMQTT();
-
     } else {
     startup1=false;
   }
@@ -628,15 +545,13 @@ void calcPower2(void)  {
     counter_reading_2++;
     loops_actual_2 = 1;
     itoa(counter_reading_2, meter_counter_reading_2, 10);   //convert int to char
-    store_values();
+    SaveEEPROM();
     }
     
     Serial.print("meter_counter_reading_2 :");
     Serial.print(counter_reading_2);
     Serial.println(" KWh");
   
-    // publish data
-    PublishMQTT();
     } else {
     startup2=false;
   }
@@ -670,15 +585,13 @@ void calcPower3(void)  {
     counter_reading_3++;
     loops_actual_3 = 1;
     itoa(counter_reading_3, meter_counter_reading_3, 10);   //convert int to char
-    store_values();
+    SaveEEPROM();
     }
     
     Serial.print("meter_counter_reading_3 :");
     Serial.print(counter_reading_3);
     Serial.println(" KWh");
   
-    // publish data
-    PublishMQTT();
     } else {
     startup3=false;
   }
@@ -712,72 +625,16 @@ void calcPower4(void)  {
     counter_reading_4++;
     loops_actual_4 = 1;
     itoa(counter_reading_4, meter_counter_reading_4, 10);   //convert int to char
-    store_values();
+    SaveEEPROM();
     }
     
     Serial.print("meter_counter_reading_4 :");
     Serial.print(counter_reading_4);
     Serial.println(" KWh");
   
-    // publish data
-    PublishMQTT();
     } else {
     startup4=false;
   }
-}
-
-void store_values(void) {
-    Serial.println("STORING...");
-    Serial.print("messure_place ");
-    Serial.println(messure_place);
-    Serial.print("mqtt_server ");
-    Serial.println(mqtt_server);
-    Serial.print("mqtt_user ");
-    Serial.println(mqtt_user);
-    Serial.print("mqtt_password ");
-    Serial.println(mqtt_password);
-    Serial.print("meter_counter_reading_1 ");
-    Serial.println(meter_counter_reading_1);
-    Serial.println(counter_reading_1);
-    Serial.print("meter_loops_count_1 ");
-    Serial.println(meter_loops_count_1);
-    Serial.println(loops_count_1);
-    Serial.print("meter_counter_reading_2 ");
-    Serial.println(meter_counter_reading_2);
-    Serial.println(counter_reading_2);
-    Serial.print("meter_loops_count_2 ");
-    Serial.println(meter_loops_count_2);
-    Serial.println(loops_count_2);
-  
-  {
-    Serial.println("saving vlaues to config.json");
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject& json = jsonBuffer.createObject();
-    json["messure_place"] = messure_place;
-    json["mqtt_server"] = mqtt_server;
-    json["mqtt_user"] = mqtt_user;
-    json["mqtt_password"] = mqtt_password;
-    json["meter_counter_reading_1"] = meter_counter_reading_1;
-    json["meter_loops_count_1"] = meter_loops_count_1;
-    json["meter_counter_reading_2"] = meter_counter_reading_2;
-    json["meter_loops_count_2"] = meter_loops_count_2;
-    json["meter_counter_reading_3"] = meter_counter_reading_3;
-    json["meter_loops_count_3"] = meter_loops_count_3;
-    json["meter_counter_reading_4"] = meter_counter_reading_4;
-    json["meter_loops_count_4"] = meter_loops_count_4;
-
-    File configFile = SPIFFS.open("/config.json", "w");
-    if (!configFile) {
-      Serial.println("failed to open config file for writing");
-    }
-
-    json.printTo(Serial);
-    json.printTo(configFile);
-    configFile.close();
-    //end save
-  }
-    Serial.println("");
-    PublishMQTT();
 }
 
 void handleSave(void) {
@@ -795,7 +652,7 @@ void handleSave(void) {
     Serial.println("Counter_RpKWh 1: " + server.arg("bb"));
     // convert int to char
     str1=String(server.arg("bb"));
-    str1.toCharArray(meter_loops_count_1,5);
+    str1.toCharArray(meter_loops_count_1,6);
     loops_count_1 = atoi(meter_loops_count_1);
   }
 
@@ -811,7 +668,7 @@ void handleSave(void) {
     Serial.println("Counter_RpKWh 2: " + server.arg("dd"));
     // convert int to char
     str1=String(server.arg("dd"));
-    str1.toCharArray(meter_loops_count_2,5);
+    str1.toCharArray(meter_loops_count_2,6);
     loops_count_2 = atoi(meter_loops_count_2);
   }
 
@@ -827,7 +684,7 @@ void handleSave(void) {
     Serial.println("Counter_RpKWh 3: " + server.arg("ff"));
     // convert int to char
     str1=String(server.arg("ff"));
-    str1.toCharArray(meter_loops_count_3,5);
+    str1.toCharArray(meter_loops_count_3,6);
     loops_count_3 = atoi(meter_loops_count_3);
   }
 
@@ -843,38 +700,49 @@ void handleSave(void) {
     Serial.println("Counter_RpKWh 4: " + server.arg("hh"));
     // convert int to char
     str1=String(server.arg("hh"));
-    str1.toCharArray(meter_loops_count_4,5);
+    str1.toCharArray(meter_loops_count_4,6);
     loops_count_4 = atoi(meter_loops_count_4);
   }
 
    if (server.arg("ab")!= ""){
     str1=String(server.arg("ab"));
-    str1.toCharArray(messure_place,40);
+    str1.toCharArray(messure_place,20);
   }
 
    if (server.arg("ac")!= ""){
     str1=String(server.arg("ac"));
-    str1.toCharArray(mqtt_server,40);
+    str1.toCharArray(mqtt_server,20);
   }
 
    if (server.arg("ad")!= ""){
     str1=String(server.arg("ad"));
-    str1.toCharArray(mqtt_user,40);
+    str1.toCharArray(mqtt_user,20);
   }
 
    if (server.arg("ae")!= ""){
     str1=String(server.arg("ae"));
-    str1.toCharArray(mqtt_password,40);
+    str1.toCharArray(mqtt_password,20);
   }
 
-  store_values();
+  if (server.arg("af")!= ""){
+    str1=String(server.arg("af"));
+    str1.toCharArray(mqtt_port,5);
+  }
+
+  if (server.arg("ag")!= ""){
+    str1=String(server.arg("ag"));
+    str1.toCharArray(mqtt_publish,5);
+  }
+
+  SaveEEPROM();
 }
 
 void handleRoot(void) {
-
-
+  
   String messplatz(messure_place);
   String mqttserver(mqtt_server);
+  String mqttport(mqtt_port);
+  String mqttpublish(mqtt_publish);
   String mqttuser(mqtt_user);
   String mqttpassword(mqtt_password);
   
@@ -893,6 +761,8 @@ void handleRoot(void) {
             (Eisbaeeer@gmail.com)<br>\
             https://github.com/Eisbaeeer<p>\
               <b>MQTT Server </b><input type='text' name='val_ac' id='val_ac' size=20 value=\""+mqttserver+"\" placeholder=\"MQTT Server IP\"><br> \
+              <b>MQTT Server Port </b><input type='text' name='val_af' id='val_af' size=5 value=\""+mqttport+"\" placeholder=\"MQTT Server Port\"><br> \
+              <b>MQTT Publish time in seconds (1-9999) </b><input type='text' name='val_ag' id='val_ag' size=5 value=\""+mqttpublish+"\" placeholder=\"MQTT Publish Time in seconds (1-9999)\"><br> \
               <b>MQTT Benutzer </b><input type='text' name='val_ad' id='val_ad' size=20 value=\""+mqttuser+"\" placeholder=\"MQTT Benutzer\"><br> \
               <b>MQTT Passwort </b><input type='text' name='val_ae' id='val_ae' size=20 value=\""+mqttpassword+"\" placeholder=\"MQTT Passwort\"><p> \                        
               <b>Me&szlig;platz </b><input type='text' name='val_ab' id='val_ab' size=20 value=\""+messplatz+"\" placeholder=\"Me&szlig;platz\" autofocus><p> \                        
@@ -924,6 +794,8 @@ snprintf ( htmlResponse2, 3000,
       var ac;\
       var ad;\
       var ae;\
+      var af;\
+      var ag;\
       $('#save_button').click(function(e){\
         e.preventDefault();\
         aa = $('#val_aa').val();\
@@ -938,14 +810,15 @@ snprintf ( htmlResponse2, 3000,
         ac = $('#val_ac').val();\
         ad = $('#val_ad').val();\
         ae = $('#val_ae').val();\
-        $.get('/save?aa=' + aa + '&bb=' + bb + '&cc=' + cc + '&dd=' + dd + '&ee=' + ee + '&ff=' + ff + '&gg=' + gg + '&hh=' + hh + '&ab=' + ab + '&ac=' + ac + '&ad=' + ad + '&ae=' + ae, function(data){\
+        af = $('#val_af').val();\
+        ag = $('#val_ag').val();\
+        $.get('/save?aa=' + aa + '&bb=' + bb + '&cc=' + cc + '&dd=' + dd + '&ee=' + ee + '&ff=' + ff + '&gg=' + gg + '&hh=' + hh + '&ab=' + ab + '&ac=' + ac + '&ad=' + ad + '&ae=' + ae + '&af=' + af + '&ag=' + ag, function(data){\
           console.log(data);\
         });\
       });\      
     </script>\
   </body>\
-</html>"); 
-
+</html>");   
    server.send ( 200, "text/html", htmlResponse1 + webString + htmlResponse2 ); 
 }
 
@@ -956,10 +829,20 @@ void loop(){
 
   // One second interval
   unsigned long currentMillis = millis();
+  int int_mqtt_publish = atoi(mqtt_publish);
+  
   if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
       mqttReconnect++;
       seconds++;
+
+  if (mqttPublishTime <= int_mqtt_publish) {
+     mqttPublishTime++;
+     } else {
+      PublishMQTT();
+      mqttPublishTime = 0;
+     }
+      
       if (seconds >= 60) {
         Serial.println("--- One minute gone ---");
         seconds=0;
@@ -980,13 +863,6 @@ void loop(){
   
     
       }
-      // if the LED is off turn it on and vice-versa:
-      if (ledState == LOW) {
-        ledState = HIGH;
-      } else {
-        ledState = LOW;
-      }
-      digitalWrite(BUILTIN_LED, ledState);
 }
 
   //WiFiClient client = server.available();   // Listen for incoming clients
@@ -995,7 +871,7 @@ void loop(){
 }
 
 void reconnect(void) {
-  if (mqttReconnect > 60) {
+  if (mqttReconnect > 30) {
     mqttReconnect = 0;    // reset reconnect timeout
   // reconnect to MQTT Server
   if (!MQTTclient.connected()) {

@@ -34,6 +34,18 @@ Printable enclosures are available on thingiverse.
 
 ## Changelog 
 
+### Version 0.4
+ (Eisbaeeer 20200905)
+  - Bugfix Zähler 3 und 4 (Zählerstand)   
+  - Neu: MQTT Server Port konfigurierbar    
+  - Neu: MQTT publish Zeit einstellbar (1-9999 Sekunden)    
+  - Blinken der internen LED aus kompatibilitätsgründen von anderen Boards entfernt (manche Boards nutzen D4 für die interne LED)    
+	(ACHTUNG: mit dieser Version gehen die Zählerdaten verloren! bitte über Browser neu eintragen!)   
+	(Im Code bitte die Zeilen: "SPIFFS.format();" auskommentieren, hochladen, wieder kommentieren und hochladen)   
+	(Danach über den Browser die Werte neu eingeben!)  
+  - Neu: Port D4 auf D5 umgezogen! (D4 ist bei manchen Boards die interne LED   
+  - Neu: Alle Zählerdaten werden im EEPROM abgespeichert.   
+
 ### Version 0.3
 (Eisbaeeer)   
 - adding upload of firmware bin files via webpage (http://.../update)
