@@ -20,6 +20,10 @@
 
   History
 
+  Ver. 0.5 (20200906)
+  (Eisbaeeer)
+  - Bugfix vars neu einlesen nach EEProm WriteReadEEPROM
+
   Ver. 0.4 (20200905)
   (Eisbaeeer)
   - Bugfix Zähler 3 und 4 (Zählerstand)
@@ -735,6 +739,16 @@ void handleSave(void) {
   }
 
   SaveEEPROM();
+  // convert the global vars from char
+  counter_reading_1 = atoi(meter_counter_reading_1);
+  loops_count_1 = atoi(meter_loops_count_1);
+  counter_reading_2 = atoi(meter_counter_reading_2);
+  loops_count_2 = atoi(meter_loops_count_2);
+  counter_reading_3 = atoi(meter_counter_reading_3);
+  loops_count_3 = atoi(meter_loops_count_3);
+  counter_reading_4 = atoi(meter_counter_reading_4);
+  loops_count_4 = atoi(meter_loops_count_4);
+
 }
 
 void handleRoot(void) {
