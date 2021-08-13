@@ -1,3 +1,4 @@
+
 /***************************************************************************
   Part one:
   IR Ferraris Reader
@@ -20,6 +21,11 @@
 
   History
 
+  Ver. 0.5 (20210813)
+  (Eisbaeeer)
+  - Bugfix boolean
+  - Added 3 digits after dot 
+  
   Ver. 0.4 (20200905)
   (Eisbaeeer)
   - Bugfix Zähler 3 und 4 (Zählerstand)
@@ -27,8 +33,6 @@
   - Neu: MQTT publish Zeit einstellbar (1-9999 Sekunden)
   - Blinken der internen LED aus kompatibilitätsgründen von anderen Boards entfernt (manche Boards nutzen D4 für die interne LED)
   (ACHTUNG: mit dieser Version gehen die Zählerdaten verloren! bitte über Browser neu eintragen!)
-  (Im Code bitte die Zeilen: "SPIFFS.format();" auskommentieren, hochladen, wieder kommentieren und hochladen)
-  (Danach über den Browser die Werte neu eingeben!)  
   - Neu: Port D4 auf D5 umgezogen! (D4 ist bei manchen Boards die interne LED
   - Neu: Alle Zählerdaten werden im EEPROM abgespeichert.
 
@@ -264,7 +268,7 @@ void setup() {
   pinMode(IRPIN4, INPUT_PULLUP);
   
   // !!! clean FS, for testing
-  // SPIFFS.format();
+    SPIFFS.format();
   
   // WiFiManager
   // Local intialization. Once its business is done, there is no need to keep it around
@@ -280,7 +284,7 @@ void setup() {
   //wifiManager.addParameter(&custom_output);
    
   // !!! Uncomment and run it once, if you want to erase all the stored information
-  // wifiManager.resetSettings();
+   wifiManager.resetSettings();
   
   //set minimu quality of signal so it ignores AP's under that quality
   //defaults to 8%
@@ -482,7 +486,7 @@ void calcPower1(void)  {
   lastmillis1 = pendingmillis1;
 
    Meter_KW_1 = 3600000.00 / took1 / loops_count_1;
-   dtostrf(Meter_KW_1, 3, 2, char_meter_kw_1); 
+   dtostrf(Meter_KW_1, 4, 3, char_meter_kw_1); 
 
   if(!startup1) {
     Serial.print(Meter_KW_1);
@@ -522,7 +526,7 @@ void calcPower2(void)  {
   lastmillis2 = pendingmillis2;
 
    Meter_KW_2 = 3600000.00 / took2 / loops_count_2;
-   dtostrf(Meter_KW_2, 3, 2, char_meter_kw_2); 
+   dtostrf(Meter_KW_2, 4, 3, char_meter_kw_2); 
 
   if(!startup2) {
     Serial.print(Meter_KW_2);
@@ -562,7 +566,7 @@ void calcPower3(void)  {
   lastmillis3 = pendingmillis3;
 
    Meter_KW_3 = 3600000.00 / took3 / loops_count_3;
-   dtostrf(Meter_KW_3, 3, 2, char_meter_kw_3); 
+   dtostrf(Meter_KW_3, 4, 3, char_meter_kw_3); 
 
   if(!startup3) {
     Serial.print(Meter_KW_3);
@@ -602,7 +606,7 @@ void calcPower4(void)  {
   lastmillis4 = pendingmillis4;
 
    Meter_KW_4 = 3600000.00 / took4 / loops_count_4;
-   dtostrf(Meter_KW_4, 3, 2, char_meter_kw_4); 
+   dtostrf(Meter_KW_4, 4, 3, char_meter_kw_4); 
 
   if(!startup4) {
     Serial.print(Meter_KW_4);
@@ -919,7 +923,7 @@ void IRSensorHandle(void) {
   switch(lastState1) {
     case 0: //Silver; Waiting for transition to red
       if(cur1 != SILVER1) {
-        lastState1++;
+        lastState1 = true;
         pendingmillis1 = millis();
         Serial.println("Silver detected; waiting for red");
         calcPower1();
@@ -927,7 +931,7 @@ void IRSensorHandle(void) {
       break;
     case 1: //Red; Waiting for transition to silver
       if(cur1 != RED1) {
-        lastState1=0;
+        lastState1=false;
         Serial.println("Red detected; Waiting for silver");
       }
       break;
@@ -936,7 +940,7 @@ void IRSensorHandle(void) {
     switch(lastState2) {
     case 0: //Silver; Waiting for transition to red
       if(cur2 != SILVER2) {
-        lastState2++;
+        lastState2=true;
         pendingmillis2 = millis();
         Serial.println("Silver detected; waiting for red");
         calcPower2();
@@ -944,7 +948,7 @@ void IRSensorHandle(void) {
       break;
     case 1: //Red; Waiting for transition to silver
       if(cur2 != RED2) {
-        lastState2=0;
+        lastState2=false;
         Serial.println("Red detected; Waiting for silver");
       }
       break;
@@ -953,7 +957,7 @@ void IRSensorHandle(void) {
   switch(lastState3) {
     case 0: //Silver; Waiting for transition to red
       if(cur3 != SILVER3) {
-        lastState3++;
+        lastState3=true;
         pendingmillis3 = millis();
         Serial.println("Silver detected; waiting for red");
         calcPower3();
@@ -961,7 +965,7 @@ void IRSensorHandle(void) {
       break;
     case 1: //Red; Waiting for transition to silver
       if(cur3 != RED3) {
-        lastState3=0;
+        lastState3=false;
         Serial.println("Red detected; Waiting for silver");
       }
       break;
@@ -970,7 +974,7 @@ void IRSensorHandle(void) {
   switch(lastState4) {
     case 0: //Silver; Waiting for transition to red
       if(cur4 != SILVER4) {
-        lastState4++;
+        lastState4=true;
         pendingmillis4 = millis();
         Serial.println("Silver detected; waiting for red");
         calcPower4();
@@ -978,7 +982,7 @@ void IRSensorHandle(void) {
       break;
     case 1: //Red; Waiting for transition to silver
       if(cur4 != RED4) {
-        lastState4=0;
+        lastState4=false;
         Serial.println("Red detected; Waiting for silver");
       }
       break;

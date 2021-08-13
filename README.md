@@ -36,6 +36,11 @@ Printable enclosures are available on thingiverse.
 
 ## Changelog 
 
+### Version 0.5  
+  (Eisbaeeer 20210813)
+  - Bugfix boolean
+  - Added 3 digits after dot
+
 ### Version 0.4
  (Eisbaeeer 20200905)
   - Bugfix Zähler 3 und 4 (Zählerstand)   
