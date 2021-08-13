@@ -28,6 +28,9 @@ Printable enclosures are available on thingiverse.
 5. Open the source
 6. Compile with your board settings
 
+## Using upload ready binary
+You are able to upload the compiled binary without Arduino IDE installed. You will find the compiled bin file in binary folder.
+
 ## Weblinks to get running
 - iobroker forum: https://forum.iobroker.net/topic/35404/ferraris-z%C3%A4hler-mit-tcrt5000-und-esp8266
 - thingiverse: https://www.thingiverse.com/thing:4560681
