@@ -16,7 +16,7 @@ Printable enclosures are available on thingiverse.
 - Webpage to configure all settings or read the values
 - OTA Over-The-Air update of firmware
 
-![Logo](pics/webpage.jpg)
+![Logo](pics/framework.jpg)
 ![Logo](pics/irsensor.jpg)
 ![Logo](pics/esp8266.jpg)
 
