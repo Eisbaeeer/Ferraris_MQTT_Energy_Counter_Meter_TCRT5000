@@ -1,0 +1,70 @@
+[
+    {
+        "name": "Version",
+        "type": "char",
+        "length": 6,
+        "direction": "display"
+    },
+    {
+        "name": "Wifi_RSSI",
+        "type": "char",
+        "length": 6,
+        "direction": "display"
+    },
+    {
+        "name": "WLAN_RSSI",
+        "type": "int8_t",
+        "length": 8,
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 50
+    },
+    {
+        "name": "KWh_Zaehler1",
+        "type": "char",
+        "length": 12,
+        "direction": "display"
+    },
+    {
+        "name": "Leistung_Zaehler1",
+        "type": "float",
+        "length": 5,
+        "direction": "display"
+    },
+    {
+        "name": "KWh_Zaehler2",
+        "type": "char",
+        "length": 12,
+        "direction": "display"
+    },
+    {
+        "name": "Leistung_Zaehler2",
+        "type": "float",
+        "length": 5,
+        "direction": "display"
+    },
+    {
+        "name": "KWh_Zaehler3",
+        "type": "char",
+        "length": 12,
+        "direction": "display"
+    },
+    {
+        "name": "Leistung_Zaehler3",
+        "type": "float",
+        "length": 5,
+        "direction": "display"
+    },
+    {
+        "name": "KWh_Zaehler4",
+        "type": "char",
+        "length": 12,
+        "direction": "display"
+    },
+    {
+        "name": "Leistung_Zaehler4",
+        "type": "float",
+        "length": 5,
+        "direction": "display"
+    }
+]

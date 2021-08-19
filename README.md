@@ -39,6 +39,11 @@ You are able to upload the compiled binary without Arduino IDE installed. You wi
 
 ## Changelog 
 
+### Version 0.6
+  (Eisbaeeer 20210819)
+  - Moved from ArduinoIDE to PlatformIO
+  - Merged project to framework
+
 ### Version 0.5  
   (Eisbaeeer 20210813)
   - Bugfix boolean

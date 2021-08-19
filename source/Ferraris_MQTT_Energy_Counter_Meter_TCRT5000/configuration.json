@@ -1,0 +1,117 @@
+[
+    {
+        "name": "projectName",
+        "label": "Project Name",
+        "type": "char",
+        "disabled": true,
+        "hidden": true,
+        "length": 32,
+        "value": "Ferraris MQTT"
+    },
+    {
+        "name": "language",        
+        "type": "char",
+        "length": 3,
+        "value": "en",
+        "hidden": true
+    },
+    {
+        "name": "messure_place",
+        "label": "Messplatz",
+        "type": "char",
+        "length": 20,
+        "value": "Messplatz"
+    },
+    {
+        "name": "mqtt_server",
+        "label": "MQTT Server IP/FQDN",
+        "type": "char",
+        "length": 20,
+        "value": "mqttserver.local"
+    },
+    {
+        "name": "mqtt_port",
+        "label": "MQTT Port",
+        "type": "int16_t",
+        "value": 1883
+    },
+    {
+        "name": "mqtt_interval",
+        "label": "MQTT Publish Interval (seconds)",
+        "type": "int8_t",
+        "value": "10"
+    },
+    {
+        "name": "mqtt_user",
+        "label": "MQTT User Name",
+        "type": "char",
+        "length": 20,
+        "value": "username"
+    },
+    {
+        "name": "mqtt_password",
+        "label": "MQTT Password",
+        "type": "char",
+        "length": 20,
+        "value": "password"
+    },
+    {
+        "name": "wifi_hostname",
+        "label": "WiFi Hostname",
+        "type": "char",
+        "length": 20,
+        "value": "Ferraris"
+    },
+    {
+        "name": "meter_counter_reading_1",
+        "label": "KWh Zähler 1",
+        "type": "char",
+        "length": 12,
+        "value": "0.0"
+    },
+    {
+        "name": "meter_loops_count_1",
+        "label": "Umdrehungen / KWh Zähler 1",
+        "type": "int8_t",
+        "value": "75"
+    },
+    {
+        "name": "meter_counter_reading_2",
+        "label": "KWh Zähler 2",
+        "type": "char",
+        "length": 12,
+        "value": "0.0"
+    },
+    {
+        "name": "meter_loops_count_2",
+        "label": "Umdrehungen / KWh Zähler 2",
+        "type": "int8_t",
+        "value": "75"
+    },
+    {
+        "name": "meter_counter_reading_3",
+        "label": "KWh Zähler 3",
+        "type": "char",
+        "length": 12,
+        "value": "0.0"
+    },
+    {
+        "name": "meter_loops_count_3",
+        "label": "Umdrehungen / KWh Zähler 3",
+        "type": "int8_t",
+        "value": "75"
+    },
+    {
+        "name": "meter_counter_reading_4",
+        "label": "KWh Zähler 4",
+        "type": "char",
+        "length": 12,
+        "value": "0.0"
+    },
+    {
+        "name": "meter_loops_count_4",
+        "label": "Umdrehungen / KWh Zähler 4",
+        "type": "int8_t",
+        "value": "75"
+    }
+]
