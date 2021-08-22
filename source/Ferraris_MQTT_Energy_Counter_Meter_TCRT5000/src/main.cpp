@@ -17,6 +17,10 @@
   The ESP firmware update can be done via "Over-The-Air".
   
   History
+  Ver. 0.7 (20210822)
+  - Bugfix Zählerstand
+  - Zählerstand auf Nachkommastellen erweitert
+
   Ver. 0.6 (20210818)
   - Change project to iot-framework
 
@@ -88,6 +92,8 @@
 #define RED4 LOW
 #define SILVER4 HIGH
 #define MINTIME 2    //in 10ms = 20ms
+#define MSG_BUFFER_SIZE	(20)
+char result[MSG_BUFFER_SIZE];
 
 bool lastState1 = 0;  // 0 = Silver->Red; 1 = Red->Silver
 bool lastState2 = 0;  
@@ -113,11 +119,10 @@ int loops_actual_1 = 0;
 int loops_actual_2 = 0;
 int loops_actual_3 = 0;
 int loops_actual_4 = 0;
-int counter_reading_1 = 0;
-int counter_reading_2 = 0;
-int counter_reading_3 = 0;
-int counter_reading_4 = 0;
-
+float counter_reading_1 = 0;
+float counter_reading_2 = 0;
+float counter_reading_3 = 0;
+float counter_reading_4 = 0;
 char char_meter_kw_1[6];
 char char_meter_kw_2[6];
 char char_meter_kw_3[6];
@@ -158,7 +163,8 @@ void PublishMQTT(void) {                     //MQTTclient.publish
     String topic = "Ferraris/";
            topic = topic + configManager.data.messure_place;
            topic = topic +"/Zähler1/Stand";
-    MQTTclient.publish(topic.c_str(), configManager.data.meter_counter_reading_1);
+      dtostrf(configManager.data.meter_counter_reading_1, 7, 3, result);
+    MQTTclient.publish(topic.c_str(), result);
           topic = "Ferraris/";
           topic = topic + configManager.data.messure_place;
           topic = topic +"/Zähler1/KW";
@@ -174,7 +180,8 @@ void PublishMQTT(void) {                     //MQTTclient.publish
           topic = "Ferraris/";
           topic = topic + configManager.data.messure_place;
           topic = topic +"/Zähler2/Stand";
-    MQTTclient.publish(topic.c_str(), configManager.data.meter_counter_reading_2);
+      dtostrf(configManager.data.meter_counter_reading_2, 8, 3, result);
+    MQTTclient.publish(topic.c_str(), result);
           topic = "Ferraris/";
           topic = topic + configManager.data.messure_place;
           topic = topic +"/Zähler2/KW";
@@ -190,7 +197,8 @@ void PublishMQTT(void) {                     //MQTTclient.publish
           topic = "Ferraris/";
           topic = topic + configManager.data.messure_place;
           topic = topic +"/Zähler3/Stand";
-    MQTTclient.publish(topic.c_str(), configManager.data.meter_counter_reading_3);
+      dtostrf(configManager.data.meter_counter_reading_3, 8, 3, result);
+    MQTTclient.publish(topic.c_str(), result);
           topic = "Ferraris/";
           topic = topic + configManager.data.messure_place;
           topic = topic +"/Zähler3/KW";
@@ -206,7 +214,8 @@ void PublishMQTT(void) {                     //MQTTclient.publish
           topic = "Ferraris/";
           topic = topic + configManager.data.messure_place;
           topic = topic +"/Zähler4/Stand";
-    MQTTclient.publish(topic.c_str(), configManager.data.meter_counter_reading_4);
+      dtostrf(configManager.data.meter_counter_reading_4, 8, 3, result);
+    MQTTclient.publish(topic.c_str(), result);
           topic = "Ferraris/";
           topic = topic + configManager.data.messure_place;
           topic = topic +"/Zähler4/KW";
@@ -338,6 +347,12 @@ void calcPower1(void)  {
     Serial.print(" kW @ ");
     Serial.print(took1);
     Serial.println("ms");
+
+    // adding float to meter count
+    float delta_meter1 = 1.0 / configManager.data.meter_loops_count_1;
+    configManager.data.meter_counter_reading_1 = configManager.data.meter_counter_reading_1 + delta_meter1;
+
+    
     
     // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
     Serial.print("loops_actual_1 :");
@@ -348,9 +363,7 @@ void calcPower1(void)  {
     if(loops_actual_1 < configManager.data.meter_loops_count_1) {
       loops_actual_1++;
     } else {
-    counter_reading_1++;
     loops_actual_1 = 1;
-    itoa(counter_reading_1, configManager.data.meter_counter_reading_1, 12);   //convert int to char
     configManager.save();
     }
     
@@ -373,7 +386,11 @@ void calcPower2(void)  {
     Serial.print(" kW @ ");
     Serial.print(took2);
     Serial.println("ms");
-    
+
+    // adding float to meter count
+    float delta_meter2 = 1.0 / configManager.data.meter_loops_count_2;
+    configManager.data.meter_counter_reading_2 = configManager.data.meter_counter_reading_2 + delta_meter2;
+
     // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
     Serial.print("loops_actual_2 :");
     Serial.print(loops_actual_2);
@@ -383,9 +400,7 @@ void calcPower2(void)  {
     if(loops_actual_2 < configManager.data.meter_loops_count_2) {
       loops_actual_2++;
     } else {
-    counter_reading_2++;
     loops_actual_2 = 1;
-    itoa(counter_reading_2, configManager.data.meter_counter_reading_2, 12);   //convert int to char
     configManager.save();
     }
     
@@ -408,7 +423,11 @@ void calcPower3(void)  {
     Serial.print(" kW @ ");
     Serial.print(took3);
     Serial.println("ms");
-    
+
+    // adding float to meter count
+    float delta_meter3 = 1.0 / configManager.data.meter_loops_count_3;
+    configManager.data.meter_counter_reading_3 = configManager.data.meter_counter_reading_3 + delta_meter3;
+
     // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
     Serial.print("loops_actual_3 :");
     Serial.print(loops_actual_3);
@@ -418,9 +437,7 @@ void calcPower3(void)  {
     if(loops_actual_3 < configManager.data.meter_loops_count_3) {
       loops_actual_3++;
     } else {
-    counter_reading_3++;
     loops_actual_3 = 1;
-    itoa(counter_reading_3, configManager.data.meter_counter_reading_3, 12);   //convert int to char
     configManager.save();
     }
     
@@ -443,7 +460,11 @@ void calcPower4(void)  {
     Serial.print(" kW @ ");
     Serial.print(took4);
     Serial.println("ms");
-    
+
+    // adding float to meter count
+    float delta_meter4 = 1.0 / configManager.data.meter_loops_count_4;
+    configManager.data.meter_counter_reading_4 = configManager.data.meter_counter_reading_4 + delta_meter4;
+
     // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
     Serial.print("loops_actual_4 :");
     Serial.print(loops_actual_4);
@@ -453,9 +474,7 @@ void calcPower4(void)  {
     if(loops_actual_4 < configManager.data.meter_loops_count_4) {
       loops_actual_4++;
     } else {
-    counter_reading_4++;
     loops_actual_4 = 1;
-    itoa(counter_reading_4, configManager.data.meter_counter_reading_4, 12);   //convert int to char
     configManager.save();
     }
     
@@ -585,23 +604,17 @@ void setup() {
   Serial.print("IP-address : ");
   Serial.println(ip);
 
-    String VERSION = F("v.0.6");
+    String VERSION = F("v.0.7");
     int str_len = VERSION.length() + 1;
     VERSION.toCharArray(dash.data.Version,str_len);
 
     MQTTclient.setServer(configManager.data.mqtt_server, configManager.data.mqtt_port);
     MQTTclient.setCallback(callback);
 
-    strcpy(dash.data.KWh_Zaehler1, configManager.data.meter_counter_reading_1);
-    strcpy(dash.data.KWh_Zaehler2, configManager.data.meter_counter_reading_2);
-    strcpy(dash.data.KWh_Zaehler3, configManager.data.meter_counter_reading_3);
-    strcpy(dash.data.KWh_Zaehler4, configManager.data.meter_counter_reading_4);
-
-    counter_reading_1 = atoi(configManager.data.meter_counter_reading_1);
-    counter_reading_2 = atoi(configManager.data.meter_counter_reading_2);
-    counter_reading_3 = atoi(configManager.data.meter_counter_reading_3);
-    counter_reading_4 = atoi(configManager.data.meter_counter_reading_4);
-
+    dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
+    dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
+    dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
+    dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
   
 }
 
@@ -618,15 +631,13 @@ void loop() {
         taskA.previous = millis();
         int rssi = 0;
         rssi = WiFi.RSSI();
-        //Serial.print(rssi);
-        //Serial.println(F(" dBm"));
         sprintf(dash.data.Wifi_RSSI, "%ld", rssi) ;
         dash.data.WLAN_RSSI = WiFi.RSSI();
 
-        strcpy(dash.data.KWh_Zaehler1, configManager.data.meter_counter_reading_1);
-        strcpy(dash.data.KWh_Zaehler2, configManager.data.meter_counter_reading_2);
-        strcpy(dash.data.KWh_Zaehler3, configManager.data.meter_counter_reading_3);
-        strcpy(dash.data.KWh_Zaehler4, configManager.data.meter_counter_reading_4);  
+        dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
+        dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
+        dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
+        dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
 
           if (!MQTTclient.connected()) {
               reconnect();
@@ -641,14 +652,14 @@ void loop() {
           Serial.println(F("Publish to MQTT Server"));
 
         // DEBUG
-        Serial.print(F("meter_kw_1 :"));
+        Serial.print(F("meter_kw_1: "));
         Serial.print(dash.data.Leistung_Zaehler1);
         Serial.println(" KW");
-        Serial.print("loops_actual_1 :");
+        Serial.print("loops_actual_1: ");
         Serial.print(loops_actual_1);
         Serial.print(" / ");
         Serial.println(configManager.data.meter_loops_count_1);
-        Serial.print("meter_counter_reading_1 :");
+        Serial.print("meter_counter_reading_1: ");
         Serial.print(configManager.data.meter_counter_reading_1);
         Serial.println(" KWh");
         }
