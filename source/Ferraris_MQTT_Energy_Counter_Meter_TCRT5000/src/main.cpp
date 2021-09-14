@@ -17,6 +17,9 @@
   The ESP firmware update can be done via "Over-The-Air".
   
   History
+  Ver. 0.8 (20210914)
+  - Bugfix Zählerroutine - jetzt per Interrupt auf alle Eingänge
+
   Ver. 0.7 (20210822)
   - Bugfix Zählerstand
   - Zählerstand auf Nachkommastellen erweitert
@@ -487,24 +490,12 @@ void calcPower4(void)  {
   }
 }
 
-void IRSensorHandle(void) {
-    //MQTT
-  if (!MQTTclient.connected()) {
-    // hier noch das Handling reconnect MQTT eintragen
-    reconnect();
-  }
-  MQTTclient.loop();
-
-  // IR Sensors
+IRAM_ATTR void IRSensorHandle1(void) {
+ 
+   // IR Sensors
   bool cur1 = getInput(IRPIN1);
   cur1 = procInput1(cur1);
-  bool cur2 = getInput(IRPIN2);
-  cur2 = procInput2(cur2);
-  bool cur3 = getInput(IRPIN3);
-  cur3 = procInput3(cur3);
-  bool cur4 = getInput(IRPIN4);
-  cur4 = procInput4(cur4);
-
+  
   switch(lastState1) {
     case 0: //Silver; Waiting for transition to red
       if(cur1 != SILVER1) {
@@ -521,7 +512,14 @@ void IRSensorHandle(void) {
       }
       break;
   }
+}
 
+IRAM_ATTR void IRSensorHandle2(void) {
+ 
+   // IR Sensors
+  bool cur2 = getInput(IRPIN2);
+  cur2 = procInput2(cur2);
+  
     switch(lastState2) {
     case 0: //Silver; Waiting for transition to red
       if(cur2 != SILVER2) {
@@ -538,7 +536,14 @@ void IRSensorHandle(void) {
       }
       break;
   }
+}
 
+IRAM_ATTR void IRSensorHandle3(void) {
+ 
+   // IR Sensors
+  bool cur3 = getInput(IRPIN3);
+  cur3 = procInput3(cur3);
+  
   switch(lastState3) {
     case 0: //Silver; Waiting for transition to red
       if(cur3 != SILVER3) {
@@ -555,7 +560,14 @@ void IRSensorHandle(void) {
       }
       break;
   }
+}
 
+IRAM_ATTR void IRSensorHandle4(void) {
+ 
+   // IR Sensors
+  bool cur4 = getInput(IRPIN4);
+  cur4 = procInput4(cur4);
+  
   switch(lastState4) {
     case 0: //Silver; Waiting for transition to red
       if(cur4 != SILVER4) {
@@ -573,7 +585,6 @@ void IRSensorHandle(void) {
       break;
   }
 }
-
 // ### End Subroutines
 
 
@@ -604,7 +615,7 @@ void setup() {
   Serial.print("IP-address : ");
   Serial.println(ip);
 
-    String VERSION = F("v.0.7");
+    String VERSION = F("v.0.8");
     int str_len = VERSION.length() + 1;
     VERSION.toCharArray(dash.data.Version,str_len);
 
@@ -615,6 +626,11 @@ void setup() {
     dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
     dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
     dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
+
+    attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
   
 }
 
@@ -624,6 +640,7 @@ void loop() {
   updater.loop();
   configManager.loop();
   dash.loop();
+  MQTTclient.loop();
 
 //task A
     if (taskA.previous == 0 || (millis() - taskA.previous > taskA.rate))
@@ -638,7 +655,7 @@ void loop() {
         dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
         dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
         dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
-
+         
           if (!MQTTclient.connected()) {
               reconnect();
             }
@@ -666,6 +683,6 @@ void loop() {
 
     }
 
-  IRSensorHandle();
+  //IRSensorHandle();
 
 }

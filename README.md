@@ -38,6 +38,15 @@ You are able to upload the compiled binary without Arduino IDE installed. You wi
 ## ToDo
 
 ## Changelog 
+  
+### Version 0.8 
+  (Eisbaeeer 20210914)
+  - Bugfix Zählerroutine - jetzt per Interrupt auf alle Eingänge
+
+### Version 0.7 
+  (Eisbaeeer 20210822)
+  - Bugfix Zählerstand
+  - Zählerstand auf Nachkommastellen erweitert
 
 ### Version 0.6
   (Eisbaeeer 20210819)
