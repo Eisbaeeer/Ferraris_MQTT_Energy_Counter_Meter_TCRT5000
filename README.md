@@ -16,8 +16,8 @@ Printable enclosures are available on thingiverse.
 - Webpage to configure all settings or read the values
 - OTA Over-The-Air update of firmware
 
-![Logo](pics/framework.jpg)
 ![Logo](pics/irsensor.jpg)
+![Logo](pics/irsensor2.jpg)
 ![Logo](pics/esp8266.jpg)
 
 ## Steps to get running
@@ -27,6 +27,14 @@ Printable enclosures are available on thingiverse.
 4. Install required libraries: ArduinoJson-5, PubSubClient, WiFiManager
 5. Open the source
 6. Compile with your board settings
+
+## Calibrate sensor
+1. Connect the sensor Pin A0 to Pin A0 on the NodeMCU board
+2. Open the dashboard and calibrate the sensor by moving up/down - left/right until the best hysteresis
+3. Turn the poti left until the light is off, now turn right and stop when the light turn on.
+
+![Logo](pics/dashboard.jpg)
+
 
 ## Using upload ready binary
 You are able to upload the compiled binary without Arduino IDE installed. You will find the compiled bin file in binary folder.
@@ -38,6 +46,11 @@ You are able to upload the compiled binary without Arduino IDE installed. You wi
 ## ToDo
 
 ## Changelog 
+
+### Version 0.9 
+  (Eisbaeeer 20210917)
+  - Graphen zum Dashboard hinzugefügt
+  - Analogwert vom Sensor wird jetzt auf dem Dashboard angezeigt
   
 ### Version 0.8 
   (Eisbaeeer 20210914)

@@ -17,6 +17,10 @@
   The ESP firmware update can be done via "Over-The-Air".
   
   History
+  Ver. 0.9 (20210917)
+  - Graphen zum Dashboard hinzugefügt
+  - Analogwert vom Sensor wird jetzt auf dem Dashboard angezeigt
+
   Ver. 0.8 (20210914)
   - Bugfix Zählerroutine - jetzt per Interrupt auf alle Eingänge
 
@@ -130,6 +134,7 @@ char char_meter_kw_1[6];
 char char_meter_kw_2[6];
 char char_meter_kw_3[6];
 char char_meter_kw_4[6];
+const int analogInPin = A0;   // ESP8266 Analog Pin ADC0 = A0
 
 int mqttPublishTime;          // last publish time in seconds
 int mqttReconnect;            // timeout for reconnecting MQTT Server
@@ -159,6 +164,7 @@ struct task
 };
 
 task taskA = { .rate = 1000, .previous = 0 };
+task taskB = { .rate = 200, .previous = 0 };
 
 // ### Begin Subroutines
 
@@ -615,7 +621,7 @@ void setup() {
   Serial.print("IP-address : ");
   Serial.println(ip);
 
-    String VERSION = F("v.0.8");
+    String VERSION = F("v.0.9");
     int str_len = VERSION.length() + 1;
     VERSION.toCharArray(dash.data.Version,str_len);
 
@@ -683,6 +689,10 @@ void loop() {
 
     }
 
-  //IRSensorHandle();
+    if (taskB.previous == 0 || (millis() - taskB.previous > taskB.rate))
+    {
+        taskB.previous = millis();
+        dash.data.Sensor = analogRead(analogInPin);
+    }
 
 }

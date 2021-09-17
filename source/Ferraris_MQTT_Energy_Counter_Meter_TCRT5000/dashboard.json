@@ -20,6 +20,14 @@
         "xaxis": 50
     },
     {
+        "name": "Sensor",
+        "type": "int8_t",
+        "length": 8,
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 100
+    },
+    {
         "name": "KWh_Zaehler1",
         "type": "float",
         "direction": "display"
