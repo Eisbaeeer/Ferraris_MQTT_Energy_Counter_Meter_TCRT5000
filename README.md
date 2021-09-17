@@ -33,7 +33,7 @@ Printable enclosures are available on thingiverse.
 2. Open the dashboard and calibrate the sensor by moving up/down - left/right until the best hysteresis
 3. Turn the poti left until the light is off, now turn right and stop when the light turn on.
 
-![Logo](pics/dashboard.jpg)
+![Logo](pics/dashboard.png)
 
 
 ## Using upload ready binary
