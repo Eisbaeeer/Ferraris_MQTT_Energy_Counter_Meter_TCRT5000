@@ -21,12 +21,9 @@ Printable enclosures are available on thingiverse.
 ![Logo](pics/esp8266.jpg)
 
 ## Steps to get running
-1. Install Arduino IDE
-2. Define board URL: http://arduino.esp8266.com/stable/package_esp8266com_index.json
-3. Install board ESP8266
-4. Install required libraries: ArduinoJson-5, PubSubClient, WiFiManager
-5. Open the source
-6. Compile with your board settings
+1. Install VSCode + PlatformIO
+2. Follow the installation guide to compile the framework
+https://github.com/maakbaas/esp8266-iot-framework/blob/master/docs/installation-guide.md
 
 ## Calibrate sensor
 1. Connect the sensor Pin A0 to Pin A0 on the NodeMCU board
@@ -38,12 +35,16 @@ Printable enclosures are available on thingiverse.
 
 ## Using upload ready binary
 You are able to upload the compiled binary without Arduino IDE installed. You will find the compiled bin file in binary folder.
+The binary supports ESP8266 with 4MG flash e.g. NodeMCU version 2+3.
 
 ## Weblinks to get running
 - iobroker forum: https://forum.iobroker.net/topic/35404/ferraris-z%C3%A4hler-mit-tcrt5000-und-esp8266
 - thingiverse: https://www.thingiverse.com/thing:4560681
 
 ## ToDo
+- adding floats
+- adding gas sensor
+- adding impuls settings for S0
 
 ## Changelog 
 
@@ -58,6 +59,7 @@ You are able to upload the compiled binary without Arduino IDE installed. You wi
   - Graphen zum Dashboard hinzugefügt
   - ISR mit no-delay Entprellung angepasst
   - Nachkommastellen durch fehlerhafte addition von floats entfernt
+  - Entprellung ist jetzt konfigurierbar
 
 ### Version 0.9 
   (Eisbaeeer 20210917)
