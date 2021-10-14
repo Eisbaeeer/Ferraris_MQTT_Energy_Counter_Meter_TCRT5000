@@ -39,7 +39,7 @@
         "name": "mqtt_interval",
         "label": "MQTT Publish Interval (seconds)",
         "type": "int8_t",
-        "value": "10"
+        "value": "30"
     },
     {
         "name": "mqtt_user",
@@ -65,49 +65,73 @@
     {
         "name": "meter_counter_reading_1",
         "label": "KWh Zähler 1",
-        "type": "float",
-        "value": "0.0"
+        "type": "int32_t",
+        "value": "0"
     },
     {
         "name": "meter_loops_count_1",
         "label": "Umdrehungen / KWh Zähler 1",
-        "type": "int8_t",
+        "type": "int16_t",
         "value": "75"
+    },
+    {
+        "name": "debounce_1",
+        "label": "Entprellzeit Zähler 1 in ms",
+        "type": "int16_t",
+        "value": "80"
     },
     {
         "name": "meter_counter_reading_2",
         "label": "KWh Zähler 2",
-        "type": "float",
-        "value": "0.0"
+        "type": "int32_t",
+        "value": "0"
     },
     {
         "name": "meter_loops_count_2",
         "label": "Umdrehungen / KWh Zähler 2",
-        "type": "int8_t",
+        "type": "int16_t",
         "value": "75"
+    },
+    {
+        "name": "debounce_2",
+        "label": "Entprellzeit Zähler 2 in ms",
+        "type": "int16_t",
+        "value": "80"
     },
     {
         "name": "meter_counter_reading_3",
         "label": "KWh Zähler 3",
-        "type": "float",
-        "value": "0.0"
+        "type": "int32_t",
+        "value": "0"
     },
     {
         "name": "meter_loops_count_3",
         "label": "Umdrehungen / KWh Zähler 3",
-        "type": "int8_t",
+        "type": "int16_t",
         "value": "75"
+    },
+    {
+        "name": "debounce_3",
+        "label": "Entprellzeit Zähler 3 in ms",
+        "type": "int16_t",
+        "value": "80"
     },
     {
         "name": "meter_counter_reading_4",
         "label": "KWh Zähler 4",
-        "type": "float",
-        "value": "0.0"
+        "type": "int32_t",
+        "value": "0"
     },
     {
         "name": "meter_loops_count_4",
         "label": "Umdrehungen / KWh Zähler 4",
-        "type": "int8_t",
+        "type": "int16_t",
         "value": "75"
+    },
+    {
+        "name": "debounce_4",
+        "label": "Entprellzeit Zähler 4 in ms",
+        "type": "int16_t",
+        "value": "80"
     }
 ]

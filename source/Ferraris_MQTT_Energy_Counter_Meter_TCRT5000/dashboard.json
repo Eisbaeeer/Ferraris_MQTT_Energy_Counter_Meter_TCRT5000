@@ -12,9 +12,13 @@
         "direction": "display"
     },
     {
+        "name": "MQTT_Connected",
+        "type": "bool",
+        "direction": "display"
+    },
+    {
         "name": "WLAN_RSSI",
         "type": "int8_t",
-        "length": 8,
         "direction": "display",
         "display": "graph",
         "xaxis": 50
@@ -22,39 +26,96 @@
     {
         "name": "Sensor",
         "type": "int8_t",
-        "length": 8,
         "direction": "display",
         "display": "graph",
-        "xaxis": 100
+        "xaxis": 50
+    },
+    {
+        "name": "Impuls_Z1",
+        "type": "bool",
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 50
+    },
+    {
+        "name": "Impuls_Z2",
+        "type": "bool",
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 50
+    },
+    {
+        "name": "Impuls_Z3",
+        "type": "bool",
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 50
+    },
+    {
+        "name": "Impuls_Z4",
+        "type": "bool",
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 50
+    },
+    {
+        "name": "loops_actual_1",
+        "type": "int16_t",
+        "length": 5,
+        "direction": "display"
     },
     {
         "name": "KWh_Zaehler1",
         "type": "float",
+        "length": 12,
         "direction": "display"
     },
     {
         "name": "Leistung_Zaehler1",
         "type": "float",
+        "length": 5,
+        "direction": "display"
+    },
+    {
+        "name": "loops_actual_2",
+        "type": "int16_t",
+        "length": 5,
         "direction": "display"
     },
     {
         "name": "KWh_Zaehler2",
         "type": "float",
+        "length": 12,
         "direction": "display"
     },
     {
         "name": "Leistung_Zaehler2",
         "type": "float",
+        "length": 5,
+        "direction": "display"
+    },
+    {
+        "name": "loops_actual_3",
+        "type": "int16_t",
+        "length": 5,
         "direction": "display"
     },
     {
         "name": "KWh_Zaehler3",
         "type": "float",
+        "length": 12,
         "direction": "display"
     },
     {
         "name": "Leistung_Zaehler3",
         "type": "float",
+        "length": 5,
+        "direction": "display"
+    },
+    {
+        "name": "loops_actual_4",
+        "type": "int16_t",
+        "length": 5,
         "direction": "display"
     },
     {

@@ -47,6 +47,18 @@ You are able to upload the compiled binary without Arduino IDE installed. You wi
 
 ## Changelog 
 
+### Ver. 0.92 
+  (Eisbaeeer 20211014)
+  - Bugfix: Interrupt Routinen bei MQTT Übertragung unterbrochen
+  - Bugfix: Interrupt Routinen beim Speichern mit littleFS unterbrochen
+  - Dashboard mit zusätzlichen Infos erweitert
+
+### Ver. 0.91 
+  (Eisbaeeer 20211011)
+  - Graphen zum Dashboard hinzugefügt
+  - ISR mit no-delay Entprellung angepasst
+  - Nachkommastellen durch fehlerhafte addition von floats entfernt
+
 ### Version 0.9 
   (Eisbaeeer 20210917)
   - Graphen zum Dashboard hinzugefügt
