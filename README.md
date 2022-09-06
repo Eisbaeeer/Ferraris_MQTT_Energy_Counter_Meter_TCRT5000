@@ -35,7 +35,7 @@ https://github.com/maakbaas/esp8266-iot-framework/blob/master/docs/installation-
 
 ## Using upload ready binary
 You are able to upload the compiled binary without Arduino IDE installed. You will find the compiled bin file in binary folder.
-The binary supports ESP8266 with 4MG flash e.g. NodeMCU version 2+3.
+The binary supports ESP8266 with 4MB flash e.g. NodeMCU version 2+3.
 
 ## Weblinks to get running
 - iobroker forum: https://forum.iobroker.net/topic/35404/ferraris-z%C3%A4hler-mit-tcrt5000-und-esp8266
