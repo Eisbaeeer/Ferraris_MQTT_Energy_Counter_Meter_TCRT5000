@@ -1,0 +1,22 @@
+on: push
+jobs:
+  build-nodemcuv2:
+    name: Build binary for nodemcuv2
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup PlatformIO
+        uses: n-vr/setup-platformio-action@v1
+        with:
+          platformio-version: "6.1.4"
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
+      - name: Build PlatformIO project
+        run: pio run -d source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000 -e nodemcuv2
+      - name: Release
+        uses: fnkr/github-action-ghr@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GHR_PATH: source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/nodemcuv2/firmware.bin
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
