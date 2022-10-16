@@ -56,6 +56,12 @@
         "value": "password"
     },
     {
+        "name": "home_assistant_auto_discovery",
+        "label": "Home-Assistant Auto Discovery",
+        "type": "bool",
+        "value": true
+    },
+    {
         "name": "wifi_hostname",
         "label": "WiFi Hostname",
         "type": "char",
