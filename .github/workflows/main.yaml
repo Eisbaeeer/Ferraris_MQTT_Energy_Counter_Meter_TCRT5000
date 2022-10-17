@@ -14,9 +14,55 @@ jobs:
           node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
       - name: Build PlatformIO project
         run: pio run -d source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000 -e nodemcuv2
+      - name: Adjust firmware filename
+        run: mv source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/nodemcuv2/firmware.bin firmware-nodemcuv2.bin
       - name: Release
         uses: fnkr/github-action-ghr@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
-          GHR_PATH: source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/nodemcuv2/firmware.bin
+          GHR_PATH: firmware-nodemcuv2.bin
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-d1:
+    name: Build binary for d1
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup PlatformIO
+        uses: n-vr/setup-platformio-action@v1
+        with:
+          platformio-version: "6.1.4"
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
+      - name: Build PlatformIO project
+        run: pio run -d source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000 -e d1
+      - name: Adjust firmware filename
+        run: mv source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/d1/firmware.bin firmware-d1.bin
+      - name: Release
+        uses: fnkr/github-action-ghr@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GHR_PATH: firmware-d1.bin
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-d1_mini:
+    name: Build binary for d1_mini
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup PlatformIO
+        uses: n-vr/setup-platformio-action@v1
+        with:
+          platformio-version: "6.1.4"
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
+      - name: Build PlatformIO project
+        run: pio run -d source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000 -e d1_mini
+      - name: Adjust firmware filename
+        run: mv source/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/d1_mini/firmware.bin firmware-d1_mini.bin
+      - name: Release
+        uses: fnkr/github-action-ghr@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GHR_PATH: firmware-d1_mini.bin
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
