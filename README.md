@@ -1,4 +1,3 @@
-Compile status:
 ![build](https://github.com/Eisbaeeer/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/actions/workflows/main.yaml/badge.svg)
 
 ![Logo](pics/logo.jpg)
