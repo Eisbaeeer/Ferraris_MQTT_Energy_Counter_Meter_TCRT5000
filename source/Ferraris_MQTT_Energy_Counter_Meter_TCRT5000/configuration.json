@@ -51,7 +51,7 @@
     {
         "name": "mqtt_password",
         "label": "MQTT Password",
-        "type": "char",
+        "type": "password",
         "length": 20,
         "value": "password"
     },
