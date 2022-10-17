@@ -1,4 +1,5 @@
-Compile status: ![build](https://github.com/Eisbaeeer/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/actions/workflows/main.yaml/badge.svg)
+Compile status:
+![build](https://github.com/Eisbaeeer/Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/actions/workflows/main.yaml/badge.svg)
 
 ![Logo](pics/logo.jpg)
 # Ferraris TCRT5000 ESP8266 Energy Meter Counter MQTT
