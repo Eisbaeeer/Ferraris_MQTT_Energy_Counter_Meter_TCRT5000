@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
       - name: Build PlatformIO project
-        run: pio run -d  -e nodemcuv2
+        run: pio run -d ./ -e nodemcuv2
       - name: Adjust firmware filename
         run: mv .pio/build/nodemcuv2/firmware.bin firmware-nodemcuv2.bin
       - name: Release
@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
       - name: Build PlatformIO project
-        run: pio run -d  -e d1
+        run: pio run -d ./ -e d1
       - name: Adjust firmware filename
         run: mv .pio/build/d1/firmware.bin firmware-d1.bin
       - name: Release
@@ -57,7 +57,7 @@ jobs:
         with:
           node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
       - name: Build PlatformIO project
-        run: pio run -d  -e d1_mini
+        run: pio run -d ./ -e d1_mini
       - name: Adjust firmware filename
         run: mv .pio/build/d1_mini/firmware.bin firmware-d1_mini.bin
       - name: Release
