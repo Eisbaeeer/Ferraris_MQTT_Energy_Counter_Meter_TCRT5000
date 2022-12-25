@@ -13,9 +13,9 @@ jobs:
         with:
           node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
       - name: Build PlatformIO project
-        run: pio run -d Ferraris_MQTT_Energy_Counter_Meter_TCRT5000 -e nodemcuv2
+        run: pio run -d  -e nodemcuv2
       - name: Adjust firmware filename
-        run: mv Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/nodemcuv2/firmware.bin firmware-nodemcuv2.bin
+        run: mv .pio/build/nodemcuv2/firmware.bin firmware-nodemcuv2.bin
       - name: Release
         uses: fnkr/github-action-ghr@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -35,9 +35,9 @@ jobs:
         with:
           node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
       - name: Build PlatformIO project
-        run: pio run -d Ferraris_MQTT_Energy_Counter_Meter_TCRT5000 -e d1
+        run: pio run -d  -e d1
       - name: Adjust firmware filename
-        run: mv Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/d1/firmware.bin firmware-d1.bin
+        run: mv .pio/build/d1/firmware.bin firmware-d1.bin
       - name: Release
         uses: fnkr/github-action-ghr@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -57,9 +57,9 @@ jobs:
         with:
           node-version: 14 # npm dependency resolution for esp8266 iot framework breaks with 16
       - name: Build PlatformIO project
-        run: pio run -d Ferraris_MQTT_Energy_Counter_Meter_TCRT5000 -e d1_mini
+        run: pio run -d  -e d1_mini
       - name: Adjust firmware filename
-        run: mv Ferraris_MQTT_Energy_Counter_Meter_TCRT5000/.pio/build/d1_mini/firmware.bin firmware-d1_mini.bin
+        run: mv .pio/build/d1_mini/firmware.bin firmware-d1_mini.bin
       - name: Release
         uses: fnkr/github-action-ghr@v1
         if: startsWith(github.ref, 'refs/tags/')
