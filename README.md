@@ -10,6 +10,8 @@ You are able to connect maximum four energy meter.
 You can use the cheap TCRT5000 as infrared sensors.
 Printable enclosures are available on thingiverse.
 
+## DEPRECATED - This repo will not be updated! See forks for updates!
+
 ## Features
 - the code creates a filesystem on flash storage of the esp8266
 - all settings are stored on the filesystem in a JSON format
@@ -52,6 +54,7 @@ The binary supports ESP8266 with 4MB flash e.g. NodeMCU version 2+3.
 
 ### Ver. 0.94
   (Eisbaeeer 20221225)
+  - Last Version - Deprecated. See Forks for updates!!!
   - Changed structure for auto-compiling different boards
   - Fixed: missing react-website compile by auto-compile
   - removed obsolete binary folder
