@@ -50,6 +50,12 @@ The binary supports ESP8266 with 4MB flash e.g. NodeMCU version 2+3.
 
 ## Changelog 
 
+### Ver. 0.94
+  (Eisbaeeer 20221225)
+  - Changed structure for auto-compiling different boards
+  - Fixed: missing react-website compile by auto-compile
+  - removed obsolete binary folder
+
 ### Ver. 0.92 
   (Eisbaeeer 20211014)
   - Bugfix: Interrupt Routinen bei MQTT Übertragung unterbrochen

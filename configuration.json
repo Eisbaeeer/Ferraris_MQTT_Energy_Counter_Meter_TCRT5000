@@ -45,14 +45,14 @@
         "name": "mqtt_user",
         "label": "MQTT User Name",
         "type": "char",
-        "length": 30,
+        "length": 50,
         "value": "username"
     },
     {
         "name": "mqtt_password",
         "label": "MQTT Password",
         "type": "char",
-        "length": 30,
+        "length": 50,
         "value": "password",
         "control": "password"
     },
