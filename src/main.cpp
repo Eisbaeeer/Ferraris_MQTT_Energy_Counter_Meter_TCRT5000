@@ -15,6 +15,16 @@
   The ESP firmware update can be done via "Over-The-Air".
   
   History
+  Ver. 0.95 (20230121)
+  - Fixed: WiFi automatic reconnect after WiFi loss
+  - Fixed: prevent watchdog reboot during long running MQTT update
+  - Fixed: compiler warnings
+
+  Ver. 0.94 (20221225)
+  - Changed structure for auto-compiling different boards
+  - Fixed: missing react-website compile by auto-compile
+  - removed obsolete binary folder
+
   Ver. 0.92 (20211014)
   - Bugfix: Interrupt Routinen bei MQTT Übertragung unterbrochen
   - Bugfix: Interrupt Routinen beim Speichern mit littleFS unterbrochen
@@ -1021,7 +1031,7 @@ void setup() {
   Serial.print("IP-address : ");
   Serial.println(ip);
 
-  String VERSION = F("v.0.94");
+  String VERSION = F("v.0.95");
   int str_len = VERSION.length() + 1;
   VERSION.toCharArray(dash.data.Version,str_len);
 
