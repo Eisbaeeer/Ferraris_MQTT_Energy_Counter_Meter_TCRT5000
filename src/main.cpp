@@ -191,7 +191,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   // copy payload into string compatible format
   char pl[length+1];
-  for (int i = 0; i < length; i++) {
+  for (unsigned int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
     pl[i]=(char)payload[i];
   }
@@ -1050,7 +1050,7 @@ void loop() {
     taskA.previous = millis();
     int rssi = 0;
     rssi = WiFi.RSSI();
-    sprintf(dash.data.Wifi_RSSI, "%ld", rssi) ;
+    sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
     dash.data.WLAN_RSSI = WiFi.RSSI();
 
     dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
