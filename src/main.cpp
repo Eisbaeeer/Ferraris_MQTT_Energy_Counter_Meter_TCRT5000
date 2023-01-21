@@ -583,6 +583,7 @@ void PublishMQTT(void) {
     char uniqueId[30];
     String meterName;
     for (int i = 0; i < 4; i++) {
+      ESP.wdtFeed();  // keep WatchDog alive
       // kW
       discoverDocument.clear();
       memset(discoverJson, 0, sizeof(discoverJson));
@@ -779,15 +780,15 @@ void PublishMQTT(void) {
   attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
 }
 
-void reconnect(void) {
-  if (mqttReconnect > 60) {
-    detachInterrupt(digitalPinToInterrupt(IRPIN1));
-    detachInterrupt(digitalPinToInterrupt(IRPIN2));
-    detachInterrupt(digitalPinToInterrupt(IRPIN3));
-    detachInterrupt(digitalPinToInterrupt(IRPIN4));
+void checkMQTTconnection(void) {
+  if (mqttReconnect++ > 60) {
     mqttReconnect = 0;    // reset reconnect timeout
     // reconnect to MQTT Server
     if (!MQTTclient.connected()) {
+      detachInterrupt(digitalPinToInterrupt(IRPIN1));
+      detachInterrupt(digitalPinToInterrupt(IRPIN2));
+      detachInterrupt(digitalPinToInterrupt(IRPIN3));
+      detachInterrupt(digitalPinToInterrupt(IRPIN4));
       dash.data.MQTT_Connected = false;
       Serial.println("Attempting MQTT connection...");
       // Create a random client ID
@@ -805,6 +806,7 @@ void reconnect(void) {
         String topic[3]={"UKWh","Stand","Entprellzeit"};
         for (int tId = 0; tId < 3; tId++) {
           for (int i = 0; i < 4; i++) {
+            ESP.wdtFeed();  // keep WatchDog alive
             String t = getSetTopicName(i+1, topic[tId]);
             if (MQTTclient.subscribe(t.c_str())) {
               Serial.print("subscribed to ");
@@ -820,12 +822,12 @@ void reconnect(void) {
         Serial.print(MQTTclient.state());
         Serial.println(" try again in one minute");
       }
+      attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
+      attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
+      attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
+      attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
     }
-    attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
-  }
+  }    
 }
 
 void calcPower1(void) {
@@ -908,7 +910,7 @@ void calcPower2(void) {
   }
 }
 
-void calcPower3(void)  {
+void calcPower3(void) {
   unsigned long took3 = pendingmillis3 - lastmillis3;
   lastmillis3 = pendingmillis3;
 
@@ -948,7 +950,7 @@ void calcPower3(void)  {
   }
 }
 
-void calcPower4(void)  {
+void calcPower4(void) {
   unsigned long took4 = pendingmillis4 - lastmillis4;
   lastmillis4 = pendingmillis4;
 
@@ -1004,6 +1006,7 @@ void setup() {
   // WiFi
   WiFi.hostname(configManager.data.wifi_hostname);
   WiFi.begin();
+  WiFi.setAutoReconnect(true);
 
   // IR-Sensor
   pinMode(IRPIN1, INPUT_PULLUP);
@@ -1045,45 +1048,46 @@ void loop() {
   dash.loop();
   MQTTclient.loop();
 
-//tasks
+  // tasks
   if (taskA.previous == 0 || (millis() - taskA.previous > taskA.rate)) {
     taskA.previous = millis();
-    int rssi = 0;
-    rssi = WiFi.RSSI();
-    sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
-    dash.data.WLAN_RSSI = WiFi.RSSI();
+    if (WiFi.status() == WL_CONNECTED) {
+      int rssi = 0;
+      rssi = WiFi.RSSI();
+      sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
+      dash.data.WLAN_RSSI = WiFi.RSSI();
 
-    dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
-    dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
-    dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
-    dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
-    dash.data.loops_actual_1 = loops_actual_1;
-    dash.data.loops_actual_2 = loops_actual_2;
-    dash.data.loops_actual_3 = loops_actual_3;
-    dash.data.loops_actual_4 = loops_actual_4;
-              
-    reconnect();
-    mqttReconnect++;      
+      dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
+      dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
+      dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
+      dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
+      dash.data.loops_actual_1 = loops_actual_1;
+      dash.data.loops_actual_2 = loops_actual_2;
+      dash.data.loops_actual_3 = loops_actual_3;
+      dash.data.loops_actual_4 = loops_actual_4;
+                
+      checkMQTTconnection();
 
-    if (mqttPublishTime <= configManager.data.mqtt_interval) {
-      mqttPublishTime++;
-    } else {
-      PublishMQTT();
-      mqttPublishTime = 0;
+      if (mqttPublishTime <= configManager.data.mqtt_interval) {
+        mqttPublishTime++;
+      } else {
+        PublishMQTT();
+        mqttPublishTime = 0;
 
-      /***
-      Serial.println(F("Publish to MQTT Server"));
-      Serial.print(F("meter_kw_1: "));
-      Serial.print(dash.data.Leistung_Zaehler1);
-      Serial.println(" KW");
-      Serial.print("loops_actual_1: ");
-      Serial.print(loops_actual_1);
-      Serial.print(" / ");
-      Serial.println(configManager.data.meter_loops_count_1);
-      Serial.print("meter_counter_reading_1: ");
-      Serial.print(configManager.data.meter_counter_reading_1);
-      Serial.println(" KWh");
-      ***/
+        /***
+        Serial.println(F("Publish to MQTT Server"));
+        Serial.print(F("meter_kw_1: "));
+        Serial.print(dash.data.Leistung_Zaehler1);
+        Serial.println(" KW");
+        Serial.print("loops_actual_1: ");
+        Serial.print(loops_actual_1);
+        Serial.print(" / ");
+        Serial.println(configManager.data.meter_loops_count_1);
+        Serial.print("meter_counter_reading_1: ");
+        Serial.print(configManager.data.meter_counter_reading_1);
+        Serial.println(" KWh");
+        ***/
+      }
     }
   }
 
