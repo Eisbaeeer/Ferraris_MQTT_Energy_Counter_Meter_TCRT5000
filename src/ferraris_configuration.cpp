@@ -1,23 +1,9 @@
 #include "ferraris_configuration.h"
 
 #include "configManager.h"
-#include "dashboard.h"
 
 
 bool saveConfig = false;
-
-
-// get configuration from web page into program logic
-void parseConfigurationPage()
-{}
-
-void updateDashboardFromConfiguration()
-{
-  dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
-  dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
-  dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
-  dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
-}
 
 
 // declare some external stuff -> todo: better refactoring
@@ -47,9 +33,9 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
   String debounceTimeCmdTopic;
   bool processed=false;
   for (int i=0; i<4; i++) {
-    ukwhCmdTopic = getSetTopicName(i+1,"UKWh");
-    kwhCmdTopic  = getSetTopicName(i+1,"Stand");
-    debounceTimeCmdTopic=getSetTopicName(i+1,"Entprellzeit");
+    ukwhCmdTopic         = getSetTopicName(i+1, "UKWh");
+    kwhCmdTopic          = getSetTopicName(i+1, "Stand");
+    debounceTimeCmdTopic = getSetTopicName(i+1, "Entprellzeit");
 
     if (t == ukwhCmdTopic){
       int16_t meters_per_loop = p.toInt();
@@ -148,7 +134,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.debounce_1 to ");
           Serial.print(debounce_value);
           Serial.println();
-          configManager.data.debounce_1=debounce_value;
+          configManager.data.meter_debounce_1 = debounce_value;
           saveConfig = true;
           processed  = true;
           break;
@@ -156,7 +142,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.debounce_2 to ");
           Serial.print(debounce_value);
           Serial.println();
-          configManager.data.debounce_2=debounce_value;
+          configManager.data.meter_debounce_2 = debounce_value;
           saveConfig = true;
           processed  = true;
           break;
@@ -164,7 +150,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.debounce_3 to ");
           Serial.print(debounce_value);
           Serial.println();
-          configManager.data.debounce_3=debounce_value;
+          configManager.data.meter_debounce_3 = debounce_value;
           saveConfig = true;
           processed  = true;
           break;
@@ -172,7 +158,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.debounce_4 to ");
           Serial.print(debounce_value);
           Serial.println();
-          configManager.data.debounce_4=debounce_value;
+          configManager.data.meter_debounce_4 = debounce_value;
           saveConfig = true;
           processed  = true;
           break;

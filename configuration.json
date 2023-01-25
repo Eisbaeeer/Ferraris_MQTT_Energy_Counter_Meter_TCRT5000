@@ -9,11 +9,22 @@
         "value": "Ferraris MQTT"
     },
     {
-        "name": "language",        
+        "name": "language",
         "type": "char",
         "length": 3,
         "value": "en",
         "hidden": true
+    },
+    {
+        "name": "wifi_hostname",
+        "label": "WiFi Hostname",
+        "type": "char",
+        "length": 20,
+        "value": "Ferraris"
+    },
+    {
+        "type": "header",
+        "text": "MQTT"
     },
     {
         "name": "messure_place",
@@ -60,84 +71,93 @@
         "name": "home_assistant_auto_discovery",
         "label": "Home-Assistant Auto Discovery",
         "type": "bool",
-        "value": true
+        "value": false
     },
     {
-        "name": "wifi_hostname",
-        "label": "WiFi Hostname",
-        "type": "char",
-        "length": 20,
-        "value": "Ferraris"
+        "type": "header",
+        "text": "Zähler 1"
     },
     {
         "name": "meter_counter_reading_1",
-        "label": "KWh Zähler 1",
+        "label": "Zählerstand [kWh]",
         "type": "uint32_t",
         "value": "0"
     },
     {
         "name": "meter_loops_count_1",
-        "label": "Umdrehungen / KWh Zähler 1",
+        "label": "Umdrehungen / kWh",
         "type": "uint16_t",
         "value": "75"
     },
     {
-        "name": "debounce_1",
-        "label": "Entprellzeit Zähler 1 in ms",
+        "name": "meter_debounce_1",
+        "label": "Entprellzeit [ms]",
         "type": "uint16_t",
         "value": "80"
     },
     {
+        "type": "header",
+        "text": "Zähler 2"
+    },
+    {
         "name": "meter_counter_reading_2",
-        "label": "KWh Zähler 2",
+        "label": "Zählerstand [kWh]",
         "type": "uint32_t",
         "value": "0"
     },
     {
         "name": "meter_loops_count_2",
-        "label": "Umdrehungen / KWh Zähler 2",
+        "label": "Umdrehungen / kWh",
         "type": "uint16_t",
         "value": "75"
     },
     {
-        "name": "debounce_2",
-        "label": "Entprellzeit Zähler 2 in ms",
+        "name": "meter_debounce_2",
+        "label": "Entprellzeit [ms]",
         "type": "uint16_t",
         "value": "80"
     },
     {
+        "type": "header",
+        "text": "Zähler 3"
+    },
+    {
         "name": "meter_counter_reading_3",
-        "label": "KWh Zähler 3",
+        "label": "Zählerstand [kWh]",
         "type": "uint32_t",
         "value": "0"
     },
     {
         "name": "meter_loops_count_3",
-        "label": "Umdrehungen / KWh Zähler 3",
+        "label": "Umdrehungen / kWh",
         "type": "uint16_t",
         "value": "75"
     },
     {
-        "name": "debounce_3",
-        "label": "Entprellzeit Zähler 3 in ms",
+        "name": "meter_debounce_3",
+        "label": "Entprellzeit [ms]",
         "type": "uint16_t",
         "value": "80"
     },
     {
+        "type": "header",
+        "text": "Zähler 4"
+    },
+    {
         "name": "meter_counter_reading_4",
-        "label": "KWh Zähler 4",
+        "label": "Zählerstand [kWh]",
         "type": "uint32_t",
         "value": "0"
     },
     {
         "name": "meter_loops_count_4",
-        "label": "Umdrehungen / KWh Zähler 4",
+        "label": "Umdrehungen / kWh",
         "type": "uint16_t",
         "value": "75"
     },
     {
-        "name": "debounce_4",
-        "label": "Entprellzeit Zähler 4 in ms",
+        "name": "meter_debounce_4",
+        "label": "Entprellzeit [ms]",
         "type": "uint16_t",
         "value": "80"
     }

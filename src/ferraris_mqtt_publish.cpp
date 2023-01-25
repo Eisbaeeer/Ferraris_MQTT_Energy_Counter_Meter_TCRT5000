@@ -236,7 +236,7 @@ void publishMQTT(void)
 
   topic = getTopicName(1,"KW");
   char char_Leistung_Zaehler1[6];
-  dtostrf(dash.data.Leistung_Zaehler1, 4, 3, char_Leistung_Zaehler1);
+  dtostrf(dash.data.kW_1, 4, 3, char_Leistung_Zaehler1);
   MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler1, true);
 
   topic = getTopicName(1,"UKWh");
@@ -246,7 +246,7 @@ void publishMQTT(void)
 
   topic = getTopicName(1,"Entprellzeit");
   char char_debounce_1[4];
-  dtostrf(configManager.data.debounce_1,3,0, char_debounce_1);
+  dtostrf(configManager.data.meter_debounce_1,3,0, char_debounce_1);
   MQTTclient.publish(topic.c_str(), char_debounce_1, true);
 
   // Meter #2
@@ -256,7 +256,7 @@ void publishMQTT(void)
 
   topic = getTopicName(2,"KW");
   char char_Leistung_Zaehler2[6];
-  dtostrf(dash.data.Leistung_Zaehler2, 4, 3, char_Leistung_Zaehler2);
+  dtostrf(dash.data.kW_2, 4, 3, char_Leistung_Zaehler2);
   MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler2, true);
 
   topic = getTopicName(2,"UKWh");
@@ -266,7 +266,7 @@ void publishMQTT(void)
 
   topic = getTopicName(2,"Entprellzeit");
   char char_debounce_2[4];
-  dtostrf(configManager.data.debounce_2,3,0, char_debounce_2);
+  dtostrf(configManager.data.meter_debounce_2,3,0, char_debounce_2);
   MQTTclient.publish(topic.c_str(), char_debounce_2, true);
 
   // Meter #3
@@ -276,7 +276,7 @@ void publishMQTT(void)
 
   topic = getTopicName(3,"KW");
   char char_Leistung_Zaehler3[6];
-  dtostrf(dash.data.Leistung_Zaehler3, 4, 3, char_Leistung_Zaehler3);
+  dtostrf(dash.data.kW_3, 4, 3, char_Leistung_Zaehler3);
   MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler3, true);
 
   topic = getTopicName(3,"UKWh");
@@ -286,7 +286,7 @@ void publishMQTT(void)
 
   topic = getTopicName(3,"Entprellzeit");
   char char_debounce_3[4];
-  dtostrf(configManager.data.debounce_3,3,0, char_debounce_3);
+  dtostrf(configManager.data.meter_debounce_3,3,0, char_debounce_3);
   MQTTclient.publish(topic.c_str(), char_debounce_3, true);
 
   // Meter #4
@@ -296,7 +296,7 @@ void publishMQTT(void)
 
   topic = getTopicName(4,"KW");
   char char_Leistung_Zaehler4[6];
-  dtostrf(dash.data.Leistung_Zaehler4, 4, 3, char_Leistung_Zaehler4);
+  dtostrf(dash.data.kW_4, 4, 3, char_Leistung_Zaehler4);
   MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler4, true);
 
   topic = getTopicName(4,"UKWh");
@@ -306,7 +306,7 @@ void publishMQTT(void)
 
   topic = getTopicName(4,"Entprellzeit");
   char char_debounce_4[4];
-  dtostrf(configManager.data.debounce_4,3,0, char_debounce_4);
+  dtostrf(configManager.data.meter_debounce_4,3,0, char_debounce_4);
   MQTTclient.publish(topic.c_str(), char_debounce_4, true);
 
   attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);

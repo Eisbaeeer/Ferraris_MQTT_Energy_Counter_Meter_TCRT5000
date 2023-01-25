@@ -5,7 +5,7 @@
   Florian Knodt - www.adlerweb.info
   Part two:
   Rui Santos
-  Complete project details at https://randomnerdtutorials.com  
+  Complete project details at https://randomnerdtutorials.com
   https://randomnerdtutorials.com/wifimanager-with-esp8266-autoconnect-custom-parameter-and-manage-your-ssid-and-password/
   Part three:
   MQTT and combine other parts
@@ -13,7 +13,7 @@
   This sketch allows you to connect an infrared sensor who detect the red mark on a ferraris energy counter.
   The data will be sent via MQTT to a server. The counter will be stored on the file-system as json.
   The ESP firmware update can be done via "Over-The-Air".
-  
+
   History
   Ver. 0.95 (20230121)
   - Fixed: WiFi automatic reconnect after WiFi loss
@@ -52,8 +52,8 @@
   Ver. 0.5 (20210813)
   (Eisbaeeer)
   - Bugfix boolean
-  - Added 3 digits after dot 
-  
+  - Added 3 digits after dot
+
   Ver. 0.4 (20200905)
   (Eisbaeeer)
   - Bugfix Zähler 3 und 4 (Zählerstand)
@@ -79,7 +79,7 @@
   - HTTP page for configuration
   - Over the air update of firmware
   - 4 meter counter (IR-Input pins)
-  
+
  * Used pins
  * Internal LED       (D0) GPIO 16
  * IR Pin Messure 1   (D1) GPIO 05
@@ -91,7 +91,7 @@
  * free               (D7) GPIO 13
  * free               (D8) GPIO 15
  * free               (SDD3) GPIO 10
- * 
+ *
 *********/
 #include <Arduino.h>
 #include <PubSubClient.h>
@@ -110,9 +110,9 @@
 #define MINTIME 2    //in 10ms = 20ms
 
 bool lastState1 = 1;  // 0 = Silver->Red; 1 = Red->Silver
-bool lastState2 = 1;  
-bool lastState3 = 1; 
-bool lastState4 = 1;  
+bool lastState2 = 1;
+bool lastState3 = 1;
+bool lastState4 = 1;
 unsigned long lastmillis1 = 0;
 unsigned long pendingmillis1 = 0;
 unsigned long lastmillis2 = 0;
@@ -148,13 +148,10 @@ int mqttPublishTime;          // last publish time in seconds
 // MQTT
 WiFiClient espClient;
 PubSubClient MQTTclient(espClient);
-long lastMsg = 0;
-char msg[50];
-int value = 0;
 
 // Tasks
 struct task
-{    
+{
   unsigned long rate;
   unsigned long previous;
 };
@@ -190,7 +187,7 @@ bool procInput1(bool state) {
   //New value
   inbuf1[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
@@ -207,7 +204,7 @@ bool procInput2(bool state) {
   //New value
   inbuf2[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
@@ -224,7 +221,7 @@ bool procInput3(bool state) {
   //New value
   inbuf3[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
@@ -241,14 +238,14 @@ bool procInput4(bool state) {
   //New value
   inbuf4[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
 }
 
 void IRAM_ATTR IRSensorHandle1(void) {
- 
+
    // IR Sensors
   bool cur1 = getInput(IRPIN1);
   cur1 = procInput1(cur1);
@@ -278,11 +275,11 @@ void IRAM_ATTR IRSensorHandle1(void) {
 }
 
 void IRAM_ATTR IRSensorHandle2(void) {
- 
+
    // IR Sensors
   bool cur2 = getInput(IRPIN2);
   cur2 = procInput2(cur2);
-  
+
   if (!debStat2) {
     switch(lastState2) {
     case 0: //Silver; Waiting for transition to red
@@ -308,11 +305,11 @@ void IRAM_ATTR IRSensorHandle2(void) {
 }
 
 void IRAM_ATTR IRSensorHandle3(void) {
- 
+
    // IR Sensors
   bool cur3 = getInput(IRPIN3);
   cur3 = procInput3(cur3);
-  
+
   if (!debStat3) {
     switch (lastState3) {
       case 0: //Silver; Waiting for transition to red
@@ -338,11 +335,11 @@ void IRAM_ATTR IRSensorHandle3(void) {
 }
 
 void IRAM_ATTR IRSensorHandle4(void) {
- 
+
    // IR Sensors
   bool cur4 = getInput(IRPIN4);
   cur4 = procInput4(cur4);
-  
+
   if (!debStat4) {
     switch (lastState4) {
       case 0: //Silver; Waiting for transition to red
@@ -372,8 +369,8 @@ void calcPower1(void) {
   lastmillis1 = pendingmillis1;
 
   if (!startup1) {
-    dash.data.Leistung_Zaehler1 = 3600000.00 / took1 / configManager.data.meter_loops_count_1;
-    Serial.print(dash.data.Leistung_Zaehler1);
+    dash.data.kW_1 = 3600000.00 / took1 / configManager.data.meter_loops_count_1;
+    Serial.print(dash.data.kW_1);
     Serial.print(" kW @ ");
     Serial.print(took1);
     Serial.println("ms");
@@ -382,14 +379,14 @@ void calcPower1(void) {
     // adding float to meter count
     float delta_meter1 = 1.0 / configManager.data.meter_loops_count_1;
     configManager.data.meter_counter_reading_1 += delta_meter1;
-    ***/    
-    
+    ***/
+
     // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
     Serial.print("loops_actual_1 :");
     Serial.print(loops_actual_1);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_1);
-    
+
     if (loops_actual_1 < configManager.data.meter_loops_count_1) {
       loops_actual_1++;
     } else {
@@ -397,11 +394,11 @@ void calcPower1(void) {
       loops_actual_1 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_1 :");
     Serial.print(configManager.data.meter_counter_reading_1);
     Serial.println(" KWh");
-  
+
   } else {
     startup1=false;
   }
@@ -412,8 +409,8 @@ void calcPower2(void) {
   lastmillis2 = pendingmillis2;
 
   if (!startup2) {
-    dash.data.Leistung_Zaehler2 = 3600000.00 / took2 / configManager.data.meter_loops_count_2;
-    Serial.print(dash.data.Leistung_Zaehler2);
+    dash.data.kW_2 = 3600000.00 / took2 / configManager.data.meter_loops_count_2;
+    Serial.print(dash.data.kW_2);
     Serial.print(" kW @ ");
     Serial.print(took2);
     Serial.println("ms");
@@ -429,7 +426,7 @@ void calcPower2(void) {
     Serial.print(loops_actual_2);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_2);
-    
+
     if (loops_actual_2 < configManager.data.meter_loops_count_2) {
       loops_actual_2++;
     } else {
@@ -437,11 +434,11 @@ void calcPower2(void) {
       loops_actual_2 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_2 :");
     Serial.print(configManager.data.meter_counter_reading_2);
     Serial.println(" KWh");
-  
+
   } else {
     startup2=false;
   }
@@ -452,8 +449,8 @@ void calcPower3(void) {
   lastmillis3 = pendingmillis3;
 
   if (!startup3) {
-    dash.data.Leistung_Zaehler3 = 3600000.00 / took3 / configManager.data.meter_loops_count_3;
-    Serial.print(dash.data.Leistung_Zaehler3);
+    dash.data.kW_3 = 3600000.00 / took3 / configManager.data.meter_loops_count_3;
+    Serial.print(dash.data.kW_3);
     Serial.print(" kW @ ");
     Serial.print(took3);
     Serial.println("ms");
@@ -469,7 +466,7 @@ void calcPower3(void) {
     Serial.print(loops_actual_3);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_3);
-    
+
     if (loops_actual_3 < configManager.data.meter_loops_count_3) {
       loops_actual_3++;
     } else {
@@ -477,11 +474,11 @@ void calcPower3(void) {
       loops_actual_3 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_3 :");
     Serial.print(configManager.data.meter_counter_reading_3);
     Serial.println(" KWh");
-  
+
   } else {
     startup3=false;
   }
@@ -492,8 +489,8 @@ void calcPower4(void) {
   lastmillis4 = pendingmillis4;
 
   if (!startup4) {
-    dash.data.Leistung_Zaehler4 = 3600000.00 / took4 / configManager.data.meter_loops_count_4;
-    Serial.print(dash.data.Leistung_Zaehler4);
+    dash.data.kW_4 = 3600000.00 / took4 / configManager.data.meter_loops_count_4;
+    Serial.print(dash.data.kW_4);
     Serial.print(" kW @ ");
     Serial.print(took4);
     Serial.println("ms");
@@ -509,7 +506,7 @@ void calcPower4(void) {
     Serial.print(loops_actual_4);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_4);
-    
+
     if (loops_actual_4 < configManager.data.meter_loops_count_4) {
       loops_actual_4++;
     } else {
@@ -517,14 +514,43 @@ void calcPower4(void) {
       loops_actual_4 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_4 :");
     Serial.print(configManager.data.meter_counter_reading_4);
     Serial.println(" KWh");
-  
+
   } else {
     startup4=false;
   }
+}
+
+// update Dashboard with current measurement values
+void updateDashboard()
+{
+  dash.data.kWh_1 = configManager.data.meter_counter_reading_1;
+  dash.data.kWh_2 = configManager.data.meter_counter_reading_2;
+  dash.data.kWh_3 = configManager.data.meter_counter_reading_3;
+  dash.data.kWh_4 = configManager.data.meter_counter_reading_4;
+
+  dash.data.revolutions_1 = loops_actual_1;
+  dash.data.revolutions_2 = loops_actual_2;
+  dash.data.revolutions_3 = loops_actual_3;
+  dash.data.revolutions_4 = loops_actual_4;
+}
+
+// update Dashboard with graph plot data, only necessary when client is connected
+void updateDashboardGraph()
+{
+  int rssi = WiFi.RSSI();
+  sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
+  dash.data.WLAN_RSSI = WiFi.RSSI();
+
+  dash.data.Sensor = analogRead(analogInPin);
+
+  dash.data.Impuls_Z1 = lastState1;
+  dash.data.Impuls_Z2 = lastState2;
+  dash.data.Impuls_Z3 = lastState3;
+  dash.data.Impuls_Z4 = lastState4;
 }
 
 // ### End Subroutines
@@ -538,7 +564,7 @@ void setup() {
   configManager.begin();
   WiFiManager.begin(configManager.data.projectName);
   timeSync.begin();
-  dash.begin(500);
+  dash.begin(taskB.rate);
 
   // WiFi
   WiFi.hostname(configManager.data.wifi_hostname);
@@ -566,7 +592,10 @@ void setup() {
   MQTTclient.setCallback(parseMQTTmessage);
   MQTTclient.setBufferSize(320); // TODO: maybe we can calculate this based on the largest assumed request + its parameters?
 
-  updateDashboardFromConfiguration();
+  updateDashboard();
+
+  // activate port for status LED
+  pinMode(LED_BUILTIN, OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
   attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
@@ -591,12 +620,8 @@ void loop() {
       sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
       dash.data.WLAN_RSSI = WiFi.RSSI();
 
-      updateDashboardFromConfiguration();
-      dash.data.loops_actual_1 = loops_actual_1;
-      dash.data.loops_actual_2 = loops_actual_2;
-      dash.data.loops_actual_3 = loops_actual_3;
-      dash.data.loops_actual_4 = loops_actual_4;
-                
+      updateDashboard();
+
       checkMQTTconnection();
 
       if (mqttPublishTime <= configManager.data.mqtt_interval) {
@@ -604,51 +629,40 @@ void loop() {
       } else {
         publishMQTT();
         mqttPublishTime = 0;
-
-        /***
-        Serial.println(F("Publish to MQTT Server"));
-        Serial.print(F("meter_kw_1: "));
-        Serial.print(dash.data.Leistung_Zaehler1);
-        Serial.println(" KW");
-        Serial.print("loops_actual_1: ");
-        Serial.print(loops_actual_1);
-        Serial.print(" / ");
-        Serial.println(configManager.data.meter_loops_count_1);
-        Serial.print("meter_counter_reading_1: ");
-        Serial.print(configManager.data.meter_counter_reading_1);
-        Serial.println(" KWh");
-        ***/
       }
     }
   }
 
   if (taskB.previous == 0 || (millis() - taskB.previous > taskB.rate)) {
     taskB.previous = millis();
-    dash.data.Sensor = analogRead(analogInPin);
+    if (GUI.ws.count() > 0) // only when clients are connected to web-server
+      updateDashboardGraph();
+
+    digitalWrite(LED_BUILTIN, (WiFi.status() == WL_CONNECTED));
   }
 
-  if (debouncePrevious1 == 0 || (millis() - debouncePrevious1 > configManager.data.debounce_1)) {
+  if (debouncePrevious1 == 0 || (millis() - debouncePrevious1 > configManager.data.meter_debounce_1)) {
     debouncePrevious1 = millis();
     if (debStat1) {
       debStat1 = false;
     }
   }
 
-  if (debouncePrevious2 == 0 || (millis() - debouncePrevious2 > configManager.data.debounce_2)) {
+  if (debouncePrevious2 == 0 || (millis() - debouncePrevious2 > configManager.data.meter_debounce_2)) {
     debouncePrevious2 = millis();
     if (debStat2) {
       debStat2 = false;
     }
   }
 
-  if (debouncePrevious3 == 0 || (millis() - debouncePrevious3 > configManager.data.debounce_3)) {
+  if (debouncePrevious3 == 0 || (millis() - debouncePrevious3 > configManager.data.meter_debounce_3)) {
     debouncePrevious3 = millis();
     if (debStat3) {
       debStat3 = false;
     }
   }
 
-  if (debouncePrevious4 == 0 || (millis() - debouncePrevious4 > configManager.data.debounce_4)) {
+  if (debouncePrevious4 == 0 || (millis() - debouncePrevious4 > configManager.data.meter_debounce_4)) {
     debouncePrevious4 = millis();
     if (debStat4) {
       debStat4 = false;
@@ -668,22 +682,9 @@ void loop() {
     calcPower4();
     calcPower4Stat = false;
   }
-  
+
   if (saveConfig) {
     saveConfig = false;
-    detachInterrupt(digitalPinToInterrupt(IRPIN1));
-    detachInterrupt(digitalPinToInterrupt(IRPIN2));
-    detachInterrupt(digitalPinToInterrupt(IRPIN3));
-    detachInterrupt(digitalPinToInterrupt(IRPIN4));
-    configManager.save();
-    attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
+    configManager.save();   // may take ~50ms
   }
-
-  dash.data.Impuls_Z1 = lastState1;
-  dash.data.Impuls_Z2 = lastState2;
-  dash.data.Impuls_Z3 = lastState3;
-  dash.data.Impuls_Z4 = lastState4;
 }
