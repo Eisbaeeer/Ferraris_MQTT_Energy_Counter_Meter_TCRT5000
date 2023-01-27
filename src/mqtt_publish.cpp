@@ -1,4 +1,4 @@
-#include "ferraris_mqtt_publish.h"
+#include "mqtt_publish.h"
 // libraries
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -117,8 +117,8 @@ void publishMQTT(void)
     char discoverJson[240];
     char uniqueId[30];
     String meterName;
+    ESP.wdtFeed();  // keep WatchDog alive
     for (int i = 0; i < 4; i++) {
-      ESP.wdtFeed();  // keep WatchDog alive
       // kW
       discoverDocument.clear();
       memset(discoverJson, 0, sizeof(discoverJson));
@@ -226,6 +226,7 @@ void publishMQTT(void)
         Serial.print(discoverJson);
         Serial.println();
       }
+      ESP.wdtFeed();  // keep WatchDog alive
     }
   }
 

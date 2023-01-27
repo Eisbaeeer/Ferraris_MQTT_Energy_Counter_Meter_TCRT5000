@@ -104,8 +104,8 @@
 #include "timeSync.h"
 #include <ArduinoJson.h>
 
-#include "ferraris_configuration.h"
-#include "ferraris_mqtt_publish.h"
+#include "mqtt_subscribe.h"
+#include "mqtt_publish.h"
 
 #define MINTIME 2    //in 10ms = 20ms
 
@@ -256,7 +256,6 @@ void IRAM_ATTR IRSensorHandle1(void) {
         if (cur1 != SILVER1) {
           lastState1 = true;
           pendingmillis1 = millis();
-          Serial.println("Silver detected; waiting for red");
           calcPower1Stat = true;
           debouncePrevious1 = millis();
           debStat1 = true;
@@ -265,7 +264,6 @@ void IRAM_ATTR IRSensorHandle1(void) {
       case 1: //Red; Waiting for transition to silver
         if (cur1 != RED1) {
           lastState1=false;
-          Serial.println("Red detected; Waiting for silver");
           debouncePrevious1 = millis();
           debStat1 = true;
         }
@@ -286,7 +284,6 @@ void IRAM_ATTR IRSensorHandle2(void) {
       if (cur2 != SILVER2) {
         lastState2=true;
         pendingmillis2 = millis();
-        Serial.println("Silver detected; waiting for red");
         calcPower2Stat = true;
         debouncePrevious2 = millis();
         debStat2 = true;
@@ -295,7 +292,6 @@ void IRAM_ATTR IRSensorHandle2(void) {
     case 1: //Red; Waiting for transition to silver
       if (cur2 != RED2) {
         lastState2=false;
-        Serial.println("Red detected; Waiting for silver");
         debouncePrevious2 = millis();
         debStat2 = true;
       }
@@ -316,7 +312,6 @@ void IRAM_ATTR IRSensorHandle3(void) {
         if (cur3 != SILVER3) {
           lastState3=true;
           pendingmillis3 = millis();
-          Serial.println("Silver detected; waiting for red");
           calcPower3Stat = true;
           debouncePrevious3 = millis();
           debStat3 = true;
@@ -325,7 +320,6 @@ void IRAM_ATTR IRSensorHandle3(void) {
       case 1: //Red; Waiting for transition to silver
         if (cur3 != RED3) {
           lastState3=false;
-          Serial.println("Red detected; Waiting for silver");
           debouncePrevious3 = millis();
           debStat3 = true;
         }
@@ -346,7 +340,6 @@ void IRAM_ATTR IRSensorHandle4(void) {
         if (cur4 != SILVER4) {
           lastState4=true;
           pendingmillis4 = millis();
-          Serial.println("Silver detected; waiting for red");
           calcPower4Stat = true;
           debouncePrevious4 = millis();
           debStat4 = true;
@@ -355,7 +348,6 @@ void IRAM_ATTR IRSensorHandle4(void) {
       case 1: //Red; Waiting for transition to silver
         if (cur4 != RED4) {
           lastState4=false;
-          Serial.println("Red detected; Waiting for silver");
           debouncePrevious4 = millis();
           debStat4 = true;
         }
@@ -584,14 +576,11 @@ void setup() {
   Serial.print("IP-address : ");
   Serial.println(ip);
 
-  String VERSION = F("v.0.96");
-  int str_len = VERSION.length() + 1;
-  VERSION.toCharArray(dash.data.Version,str_len);
-
   MQTTclient.setServer(configManager.data.mqtt_server, configManager.data.mqtt_port);
   MQTTclient.setCallback(parseMQTTmessage);
   MQTTclient.setBufferSize(320); // TODO: maybe we can calculate this based on the largest assumed request + its parameters?
 
+  memcpy(dash.data.Version, "v.0.96", 6);
   updateDashboard();
 
   // activate port for status LED
@@ -615,13 +604,7 @@ void loop() {
   if (taskA.previous == 0 || (millis() - taskA.previous > taskA.rate)) {
     taskA.previous = millis();
     if (WiFi.status() == WL_CONNECTED) {
-      int rssi = 0;
-      rssi = WiFi.RSSI();
-      sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
-      dash.data.WLAN_RSSI = WiFi.RSSI();
-
       updateDashboard();
-
       checkMQTTconnection();
 
       if (mqttPublishTime <= configManager.data.mqtt_interval) {
@@ -684,7 +667,17 @@ void loop() {
   }
 
   if (saveConfig) {
+    Serial.println("[SAVE]...");
     saveConfig = false;
+    detachInterrupt(digitalPinToInterrupt(IRPIN1));
+    detachInterrupt(digitalPinToInterrupt(IRPIN2));
+    detachInterrupt(digitalPinToInterrupt(IRPIN3));
+    detachInterrupt(digitalPinToInterrupt(IRPIN4));
     configManager.save();   // may take ~50ms
+    attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
+    Serial.println("...[SAVE finished]");
   }
 }
