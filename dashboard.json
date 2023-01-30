@@ -25,7 +25,7 @@
     },
     {
         "name": "Sensor",
-        "type": "int8_t",
+        "type": "int16_t",
         "direction": "display",
         "display": "graph",
         "xaxis": 50
@@ -59,75 +59,103 @@
         "xaxis": 50
     },
     {
-        "name": "loops_actual_1",
+        "type": "header",
+        "text": "Zähler 1"
+    },
+    {
+        "name": "revolutions_1",
+        "label": "Umdrehungen [U]",
         "type": "int16_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "KWh_Zaehler1",
+        "name": "kW_1",
+        "label": "Leistung [kW]",
         "type": "float",
-        "length": 12,
+        "digits": 3,
         "direction": "display"
     },
     {
-        "name": "Leistung_Zaehler1",
+        "name": "kWh_1",
+        "label": "Zählerstand [kWh]",
         "type": "float",
-        "length": 5,
+        "digits": 1,
         "direction": "display"
     },
     {
-        "name": "loops_actual_2",
+        "type": "header",
+        "text": "Zähler 2"
+    },
+    {
+        "name": "revolutions_2",
+        "label": "Umdrehungen [U]",
         "type": "int16_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "KWh_Zaehler2",
+        "name": "kW_2",
+        "label": "Leistung [kW]",
         "type": "float",
-        "length": 12,
+        "digits": 3,
         "direction": "display"
     },
     {
-        "name": "Leistung_Zaehler2",
+        "name": "kWh_2",
+        "label": "Zählerstand [kWh]",
         "type": "float",
-        "length": 5,
+        "digits": 1,
         "direction": "display"
     },
     {
-        "name": "loops_actual_3",
+        "type": "header",
+        "text": "Zähler 3"
+    },
+    {
+        "name": "revolutions_3",
+        "label": "Umdrehungen [U]",
         "type": "int16_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "KWh_Zaehler3",
+        "name": "kW_3",
+        "label": "Leistung [kW]",
         "type": "float",
-        "length": 12,
+        "digits": 3,
         "direction": "display"
     },
     {
-        "name": "Leistung_Zaehler3",
+        "name": "kWh_3",
+        "label": "Zählerstand [kWh]",
         "type": "float",
-        "length": 5,
+        "digits": 1,
         "direction": "display"
     },
     {
-        "name": "loops_actual_4",
+        "type": "header",
+        "text": "Zähler 4"
+    },
+    {
+        "name": "revolutions_4",
+        "label": "Umdrehungen [U]",
         "type": "int16_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "KWh_Zaehler4",
+        "name": "kW_4",
+        "label": "Leistung [kW]",
         "type": "float",
-        "length": 12,
+        "digits": 3,
         "direction": "display"
     },
     {
-        "name": "Leistung_Zaehler4",
+        "name": "kWh_4",
+        "label": "Zählerstand [kWh]",
         "type": "float",
-        "length": 5,
+        "digits": 1,
         "direction": "display"
     }
 ]

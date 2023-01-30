@@ -5,7 +5,7 @@
   Florian Knodt - www.adlerweb.info
   Part two:
   Rui Santos
-  Complete project details at https://randomnerdtutorials.com  
+  Complete project details at https://randomnerdtutorials.com
   https://randomnerdtutorials.com/wifimanager-with-esp8266-autoconnect-custom-parameter-and-manage-your-ssid-and-password/
   Part three:
   MQTT and combine other parts
@@ -13,7 +13,7 @@
   This sketch allows you to connect an infrared sensor who detect the red mark on a ferraris energy counter.
   The data will be sent via MQTT to a server. The counter will be stored on the file-system as json.
   The ESP firmware update can be done via "Over-The-Air".
-  
+
   History
   Ver. 0.95 (20230121)
   - Fixed: WiFi automatic reconnect after WiFi loss
@@ -52,8 +52,8 @@
   Ver. 0.5 (20210813)
   (Eisbaeeer)
   - Bugfix boolean
-  - Added 3 digits after dot 
-  
+  - Added 3 digits after dot
+
   Ver. 0.4 (20200905)
   (Eisbaeeer)
   - Bugfix Zähler 3 und 4 (Zählerstand)
@@ -79,7 +79,7 @@
   - HTTP page for configuration
   - Over the air update of firmware
   - 4 meter counter (IR-Input pins)
-  
+
  * Used pins
  * Internal LED       (D0) GPIO 16
  * IR Pin Messure 1   (D1) GPIO 05
@@ -91,7 +91,7 @@
  * free               (D7) GPIO 13
  * free               (D8) GPIO 15
  * free               (SDD3) GPIO 10
- * 
+ *
 *********/
 #include <Arduino.h>
 #include <PubSubClient.h>
@@ -104,28 +104,15 @@
 #include "timeSync.h"
 #include <ArduinoJson.h>
 
-// Infrared vars
-#define IRPIN1 D1
-#define IRPIN2 D2
-#define IRPIN3 D3
-#define IRPIN4 D5
-#define RED1 LOW
-#define SILVER1 HIGH
-#define RED2 LOW
-#define SILVER2 HIGH
-#define RED3 LOW
-#define SILVER3 HIGH
-#define RED4 LOW
-#define SILVER4 HIGH
+#include "mqtt_subscribe.h"
+#include "mqtt_publish.h"
+
 #define MINTIME 2    //in 10ms = 20ms
-#define MSG_BUFFER_SIZE	(20)
-char result[MSG_BUFFER_SIZE];
 
 bool lastState1 = 1;  // 0 = Silver->Red; 1 = Red->Silver
-bool lastState2 = 1;  
-bool lastState3 = 1; 
-bool lastState4 = 1;  
-bool saveConfig = false;
+bool lastState2 = 1;
+bool lastState3 = 1;
+bool lastState4 = 1;
 unsigned long lastmillis1 = 0;
 unsigned long pendingmillis1 = 0;
 unsigned long lastmillis2 = 0;
@@ -157,214 +144,14 @@ int loops_actual_4 = 0;
 const int analogInPin = A0;   // ESP8266 Analog Pin ADC0 = A0
 
 int mqttPublishTime;          // last publish time in seconds
-int mqttReconnect;            // timeout for reconnecting MQTT Server
 
 // MQTT
 WiFiClient espClient;
 PubSubClient MQTTclient(espClient);
-long lastMsg = 0;
-char msg[50];
-int value = 0;
-
-String getTopicName(int meter, String measurement){
-  String  topic = "Ferraris/";
-  topic = topic + configManager.data.messure_place;
-  topic = topic +"/Zähler";
-  topic = topic + String(meter);
-  topic = topic +"/";
-  topic = topic + measurement;
-  
-  return topic;
-}
-
-String getHATopicName(String mqtt_type, char uniqueId[30]){
-  String  topic = "homeassistant/";
-  topic = topic + mqtt_type;
-  topic = topic +"/";
-  topic = topic + String(uniqueId);
-  topic = topic +"/config";
-
-  return topic;
-}
-
-String getSetTopicName(int meter, String measurement){
-  String  topic = getTopicName(meter,measurement);
-  topic = topic + "/set"; 
-  
-  return topic;
-}
-
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-
-  // copy payload into string compatible format
-  char pl[length+1];
-  for (unsigned int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-    pl[i]=(char)payload[i];
-  }
-  pl[length] = '\0';
-  Serial.println();
-
-  String p = String(pl);
-  String t = String(topic);
-
-  String ukwhCmdTopic;
-  String kwhCmdTopic;
-  String debounceTimeCmdTopic;
-  bool processed=false;
-  for (int i=0;i<4;i++) {
-    ukwhCmdTopic=getSetTopicName(i+1,"UKWh");
-    kwhCmdTopic=getSetTopicName(i+1,"Stand");
-    debounceTimeCmdTopic=getSetTopicName(i+1,"Entprellzeit");
-
-    if (t == ukwhCmdTopic){
-      int16_t meters_per_loop = p.toInt();
-      switch (i+1) {
-        case 1:
-          Serial.print("Setting configManager.data.meter_loops_count_1 to ");
-          Serial.print(meters_per_loop);
-          Serial.println();
-          configManager.data.meter_loops_count_1=meters_per_loop;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 2:
-          Serial.print("Setting configManager.data.meter_loops_count_2 to ");
-          Serial.print(meters_per_loop);
-          Serial.println();
-          configManager.data.meter_loops_count_2=meters_per_loop;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 3:
-          Serial.print("Setting configManager.data.meter_loops_count_3 to ");
-          Serial.print(meters_per_loop);
-          Serial.println();
-          configManager.data.meter_loops_count_3=meters_per_loop;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 4:
-          Serial.print("Setting configManager.data.meter_loops_count_4 to ");
-          Serial.print(meters_per_loop);
-          Serial.println();
-          configManager.data.meter_loops_count_4=meters_per_loop;
-          saveConfig=true;
-          processed=true;
-          break;
-
-        default:
-          break;
-      }
-
-      if (processed) {
-        break;
-      }
-    }
-
-    if (t == kwhCmdTopic) {
-      int16_t meter_value = p.toInt();
-      switch (i+1) {
-        case 1:
-          Serial.print("Setting configManager.data.meter_counter_reading_1 to ");
-          Serial.print(meter_value);
-          Serial.println();
-          configManager.data.meter_counter_reading_1=meter_value;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 2:
-          Serial.print("Setting configManager.data.meter_counter_reading_2 to ");
-          Serial.print(meter_value);
-          Serial.println();
-          configManager.data.meter_counter_reading_2=meter_value;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 3:
-          Serial.print("Setting configManager.data.meter_counter_reading_3 to ");
-          Serial.print(meter_value);
-          Serial.println();
-          configManager.data.meter_counter_reading_3=meter_value;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 4:
-          Serial.print("Setting configManager.data.meter_counter_reading_4 to ");
-          Serial.print(meter_value);
-          Serial.println();
-          configManager.data.meter_counter_reading_4=meter_value;
-          saveConfig=true;
-          processed=true;
-          break;
-
-        default:
-          break;
-      }
-
-      if (processed) {
-        break;
-      }
-    }
-
-    if (t == debounceTimeCmdTopic) {
-      int16_t debounce_value = p.toInt();
-      switch (i+1) {
-        case 1:
-          Serial.print("Setting configManager.data.debounce_1 to ");
-          Serial.print(debounce_value);
-          Serial.println();
-          configManager.data.debounce_1=debounce_value;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 2:
-          Serial.print("Setting configManager.data.debounce_2 to ");
-          Serial.print(debounce_value);
-          Serial.println();
-          configManager.data.debounce_2=debounce_value;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 3:
-          Serial.print("Setting configManager.data.debounce_3 to ");
-          Serial.print(debounce_value);
-          Serial.println();
-          configManager.data.debounce_3=debounce_value;
-          saveConfig=true;
-          processed=true;
-          break;
-        case 4:
-          Serial.print("Setting configManager.data.debounce_4 to ");
-          Serial.print(debounce_value);
-          Serial.println();
-          configManager.data.debounce_4=debounce_value;
-          saveConfig=true;
-          processed=true;
-          break;
-
-        default:
-          break;
-      }
-
-      if (processed) {
-        break;
-      }
-    }
-  }
-
-  if (!processed) {
-    Serial.print("Could not process request!");
-    Serial.println();
-  }
-}
 
 // Tasks
 struct task
-{    
+{
   unsigned long rate;
   unsigned long previous;
 };
@@ -400,7 +187,7 @@ bool procInput1(bool state) {
   //New value
   inbuf1[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
@@ -417,7 +204,7 @@ bool procInput2(bool state) {
   //New value
   inbuf2[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
@@ -434,7 +221,7 @@ bool procInput3(bool state) {
   //New value
   inbuf3[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
@@ -451,14 +238,14 @@ bool procInput4(bool state) {
   //New value
   inbuf4[0] = state;
   inchk += state;
-  
+
   //Return average
   if (inchk > MINTIME/2) return 1;
   return 0;
 }
 
 void IRAM_ATTR IRSensorHandle1(void) {
- 
+
    // IR Sensors
   bool cur1 = getInput(IRPIN1);
   cur1 = procInput1(cur1);
@@ -469,7 +256,6 @@ void IRAM_ATTR IRSensorHandle1(void) {
         if (cur1 != SILVER1) {
           lastState1 = true;
           pendingmillis1 = millis();
-          Serial.println("Silver detected; waiting for red");
           calcPower1Stat = true;
           debouncePrevious1 = millis();
           debStat1 = true;
@@ -478,7 +264,6 @@ void IRAM_ATTR IRSensorHandle1(void) {
       case 1: //Red; Waiting for transition to silver
         if (cur1 != RED1) {
           lastState1=false;
-          Serial.println("Red detected; Waiting for silver");
           debouncePrevious1 = millis();
           debStat1 = true;
         }
@@ -488,18 +273,17 @@ void IRAM_ATTR IRSensorHandle1(void) {
 }
 
 void IRAM_ATTR IRSensorHandle2(void) {
- 
+
    // IR Sensors
   bool cur2 = getInput(IRPIN2);
   cur2 = procInput2(cur2);
-  
+
   if (!debStat2) {
     switch(lastState2) {
     case 0: //Silver; Waiting for transition to red
       if (cur2 != SILVER2) {
         lastState2=true;
         pendingmillis2 = millis();
-        Serial.println("Silver detected; waiting for red");
         calcPower2Stat = true;
         debouncePrevious2 = millis();
         debStat2 = true;
@@ -508,7 +292,6 @@ void IRAM_ATTR IRSensorHandle2(void) {
     case 1: //Red; Waiting for transition to silver
       if (cur2 != RED2) {
         lastState2=false;
-        Serial.println("Red detected; Waiting for silver");
         debouncePrevious2 = millis();
         debStat2 = true;
       }
@@ -518,18 +301,17 @@ void IRAM_ATTR IRSensorHandle2(void) {
 }
 
 void IRAM_ATTR IRSensorHandle3(void) {
- 
+
    // IR Sensors
   bool cur3 = getInput(IRPIN3);
   cur3 = procInput3(cur3);
-  
+
   if (!debStat3) {
     switch (lastState3) {
       case 0: //Silver; Waiting for transition to red
         if (cur3 != SILVER3) {
           lastState3=true;
           pendingmillis3 = millis();
-          Serial.println("Silver detected; waiting for red");
           calcPower3Stat = true;
           debouncePrevious3 = millis();
           debStat3 = true;
@@ -538,7 +320,6 @@ void IRAM_ATTR IRSensorHandle3(void) {
       case 1: //Red; Waiting for transition to silver
         if (cur3 != RED3) {
           lastState3=false;
-          Serial.println("Red detected; Waiting for silver");
           debouncePrevious3 = millis();
           debStat3 = true;
         }
@@ -548,18 +329,17 @@ void IRAM_ATTR IRSensorHandle3(void) {
 }
 
 void IRAM_ATTR IRSensorHandle4(void) {
- 
+
    // IR Sensors
   bool cur4 = getInput(IRPIN4);
   cur4 = procInput4(cur4);
-  
+
   if (!debStat4) {
     switch (lastState4) {
       case 0: //Silver; Waiting for transition to red
         if (cur4 != SILVER4) {
           lastState4=true;
           pendingmillis4 = millis();
-          Serial.println("Silver detected; waiting for red");
           calcPower4Stat = true;
           debouncePrevious4 = millis();
           debStat4 = true;
@@ -568,7 +348,6 @@ void IRAM_ATTR IRSensorHandle4(void) {
       case 1: //Red; Waiting for transition to silver
         if (cur4 != RED4) {
           lastState4=false;
-          Serial.println("Red detected; Waiting for silver");
           debouncePrevious4 = millis();
           debStat4 = true;
         }
@@ -577,276 +356,13 @@ void IRAM_ATTR IRSensorHandle4(void) {
   }
 }
 
-void PublishMQTT(void) {
-      
-  detachInterrupt(digitalPinToInterrupt(IRPIN1));
-  detachInterrupt(digitalPinToInterrupt(IRPIN2));
-  detachInterrupt(digitalPinToInterrupt(IRPIN3));
-  detachInterrupt(digitalPinToInterrupt(IRPIN4));
-
-  String topic;
-  String cmdTopic;
-  String haTopic;
-  if (configManager.data.home_assistant_auto_discovery) {
-    StaticJsonDocument<240> discoverDocument;
-    char discoverJson[240];
-    char uniqueId[30];
-    String meterName;
-    for (int i = 0; i < 4; i++) {
-      ESP.wdtFeed();  // keep WatchDog alive
-      // kW
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
-
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "kw", i+1);
-      topic = getTopicName(i+1, "KW");
-      meterName = "Zähler "+String(i+1)+" kW";
-
-      discoverDocument["dev_cla"] = "power";
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "kW";
-      discoverDocument["val_tpl"] = "{{value}}";
-
-      serializeJson(discoverDocument, discoverJson);
-
-      haTopic = getHATopicName("sensor", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish kw "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-
-      // kWh / Stand
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
-
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "kwh", i+1);
-      topic = getTopicName(i+1, "Stand");
-      meterName = "Zähler "+String(i+1)+" kW/h";
-      cmdTopic = getSetTopicName(i+1, "Stand");
-
-      discoverDocument["dev_cla"] = "energy";
-      discoverDocument["cmd_t"] = cmdTopic;
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "kWh";
-      discoverDocument["val_tpl"] = "{{value}}";
-
-      serializeJson(discoverDocument, discoverJson);
-
-      haTopic = getHATopicName("sensor", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish kwh "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-
-      // Umdrehungen/kWh
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "ukwh", i+1);
-      topic = getTopicName(i+1, "UKWh");
-      meterName = "Zähler "+String(i+1)+" Umdrehungen/kWh";
-      cmdTopic = getSetTopicName(i+1, "UKWh");
-
-      discoverDocument["cmd_t"] = cmdTopic;
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "Umdrehungen/kWh";
-      discoverDocument["val_tpl"] = "{{value}}";
-      discoverDocument["max"] = 512;
-
-      serializeJson(discoverDocument, discoverJson);
-
-      haTopic = getHATopicName("number", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish ukwh "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-
-      // Entprellzeit
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "entprellzeit", i+1);
-      topic = getTopicName(i+1, "Entprellzeit");
-      meterName = "Zähler "+String(i+1)+" Entprellzeit";
-      cmdTopic = getSetTopicName(i+1, "Entprellzeit");
-
-      discoverDocument["cmd_t"] = cmdTopic;
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "ms";
-      discoverDocument["val_tpl"] = "{{value}}";
-      discoverDocument["max"] = 200; // TODO: Is this a reasonable maximum value?
-
-      serializeJson(discoverDocument, discoverJson);
-
-      haTopic = getHATopicName("number", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish debounce time "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-    }
-  }
-
-  // Meter #1
-  topic = getTopicName(1,"Stand");
-  dtostrf(configManager.data.meter_counter_reading_1, 7, 3, result);
-  MQTTclient.publish(topic.c_str(), result, true);
-
-  topic = getTopicName(1,"KW");
-  char char_Leistung_Zaehler1[6];
-  dtostrf(dash.data.Leistung_Zaehler1, 4, 3, char_Leistung_Zaehler1);
-  MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler1, true);
-
-  topic = getTopicName(1,"UKWh");
-  char char_meter_loop_counts1[5];
-  dtostrf(configManager.data.meter_loops_count_1,4,0, char_meter_loop_counts1);
-  MQTTclient.publish(topic.c_str(), char_meter_loop_counts1, true);
-
-  topic = getTopicName(1,"Entprellzeit");
-  char char_debounce_1[4];
-  dtostrf(configManager.data.debounce_1,3,0, char_debounce_1);
-  MQTTclient.publish(topic.c_str(), char_debounce_1, true);
-
-  // Meter #2
-  topic = getTopicName(2,"Stand");
-  dtostrf(configManager.data.meter_counter_reading_2, 7, 3, result);
-  MQTTclient.publish(topic.c_str(), result, true);
-
-  topic = getTopicName(2,"KW");
-  char char_Leistung_Zaehler2[6];
-  dtostrf(dash.data.Leistung_Zaehler2, 4, 3, char_Leistung_Zaehler2);
-  MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler2, true);
-
-  topic = getTopicName(2,"UKWh");
-  char char_meter_loop_counts2[5];
-  dtostrf(configManager.data.meter_loops_count_2,4,0, char_meter_loop_counts2);
-  MQTTclient.publish(topic.c_str(), char_meter_loop_counts2, true);
-
-  topic = getTopicName(2,"Entprellzeit");
-  char char_debounce_2[4];
-  dtostrf(configManager.data.debounce_2,3,0, char_debounce_2);
-  MQTTclient.publish(topic.c_str(), char_debounce_2, true);
-
-  // Meter #3
-  topic = getTopicName(3,"Stand");
-  dtostrf(configManager.data.meter_counter_reading_3, 7, 3, result);
-  MQTTclient.publish(topic.c_str(), result, true);
-
-  topic = getTopicName(3,"KW");
-  char char_Leistung_Zaehler3[6];
-  dtostrf(dash.data.Leistung_Zaehler3, 4, 3, char_Leistung_Zaehler3);
-  MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler3, true);
-
-  topic = getTopicName(3,"UKWh");
-  char char_meter_loop_counts3[5];
-  dtostrf(configManager.data.meter_loops_count_3,4,0, char_meter_loop_counts3);
-  MQTTclient.publish(topic.c_str(), char_meter_loop_counts3, true);
-
-  topic = getTopicName(3,"Entprellzeit");
-  char char_debounce_3[4];
-  dtostrf(configManager.data.debounce_3,3,0, char_debounce_3);
-  MQTTclient.publish(topic.c_str(), char_debounce_3, true);
-
-  // Meter #4
-  topic = getTopicName(4,"Stand");
-  dtostrf(configManager.data.meter_counter_reading_4, 7, 3, result);
-  MQTTclient.publish(topic.c_str(), result, true);
-
-  topic = getTopicName(4,"KW");
-  char char_Leistung_Zaehler4[6];
-  dtostrf(dash.data.Leistung_Zaehler4, 4, 3, char_Leistung_Zaehler4);
-  MQTTclient.publish(topic.c_str(), char_Leistung_Zaehler4, true);
-
-  topic = getTopicName(4,"UKWh");
-  char char_meter_loop_counts4[5];
-  dtostrf(configManager.data.meter_loops_count_4,4,0, char_meter_loop_counts4);
-  MQTTclient.publish(topic.c_str(), char_meter_loop_counts4, true);
-
-  topic = getTopicName(4,"Entprellzeit");
-  char char_debounce_4[4];
-  dtostrf(configManager.data.debounce_4,3,0, char_debounce_4);
-  MQTTclient.publish(topic.c_str(), char_debounce_4, true);
-
-  attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
-}
-
-void checkMQTTconnection(void) {
-  if (mqttReconnect++ > 60) {
-    mqttReconnect = 0;    // reset reconnect timeout
-    // reconnect to MQTT Server
-    if (!MQTTclient.connected()) {
-      detachInterrupt(digitalPinToInterrupt(IRPIN1));
-      detachInterrupt(digitalPinToInterrupt(IRPIN2));
-      detachInterrupt(digitalPinToInterrupt(IRPIN3));
-      detachInterrupt(digitalPinToInterrupt(IRPIN4));
-      dash.data.MQTT_Connected = false;
-      Serial.println("Attempting MQTT connection...");
-      // Create a random client ID
-      String clientId = "FerrarisClient-";
-      //clientId += String(random(0xffff), HEX);
-      clientId += String(configManager.data.messure_place);
-      // Attempt to connect
-      if (MQTTclient.connect(clientId.c_str(),configManager.data.mqtt_user,configManager.data.mqtt_password)) {
-        Serial.println("connected");
-        dash.data.MQTT_Connected = true;
-        // Once connected, publish an announcement...
-        PublishMQTT();
-        // ... and resubscribe
-        // MQTTclient.subscribe("inTopic");
-        String topic[3]={"UKWh","Stand","Entprellzeit"};
-        for (int tId = 0; tId < 3; tId++) {
-          for (int i = 0; i < 4; i++) {
-            ESP.wdtFeed();  // keep WatchDog alive
-            String t = getSetTopicName(i+1, topic[tId]);
-            if (MQTTclient.subscribe(t.c_str())) {
-              Serial.print("subscribed to ");
-            } else {
-              Serial.print("failed to subscribe to ");
-            }
-            Serial.print(t);
-            Serial.println();
-          }
-        }
-      } else {
-        Serial.print("failed, rc=");
-        Serial.print(MQTTclient.state());
-        Serial.println(" try again in one minute");
-      }
-      attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-      attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-      attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-      attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
-    }
-  }    
-}
-
 void calcPower1(void) {
   unsigned long took1 = pendingmillis1 - lastmillis1;
   lastmillis1 = pendingmillis1;
 
   if (!startup1) {
-    dash.data.Leistung_Zaehler1 = 3600000.00 / took1 / configManager.data.meter_loops_count_1;
-    Serial.print(dash.data.Leistung_Zaehler1);
+    dash.data.kW_1 = 3600000.00 / took1 / configManager.data.meter_loops_count_1;
+    Serial.print(dash.data.kW_1);
     Serial.print(" kW @ ");
     Serial.print(took1);
     Serial.println("ms");
@@ -855,14 +371,14 @@ void calcPower1(void) {
     // adding float to meter count
     float delta_meter1 = 1.0 / configManager.data.meter_loops_count_1;
     configManager.data.meter_counter_reading_1 += delta_meter1;
-    ***/    
-    
+    ***/
+
     // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
     Serial.print("loops_actual_1 :");
     Serial.print(loops_actual_1);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_1);
-    
+
     if (loops_actual_1 < configManager.data.meter_loops_count_1) {
       loops_actual_1++;
     } else {
@@ -870,11 +386,11 @@ void calcPower1(void) {
       loops_actual_1 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_1 :");
     Serial.print(configManager.data.meter_counter_reading_1);
     Serial.println(" KWh");
-  
+
   } else {
     startup1=false;
   }
@@ -885,8 +401,8 @@ void calcPower2(void) {
   lastmillis2 = pendingmillis2;
 
   if (!startup2) {
-    dash.data.Leistung_Zaehler2 = 3600000.00 / took2 / configManager.data.meter_loops_count_2;
-    Serial.print(dash.data.Leistung_Zaehler2);
+    dash.data.kW_2 = 3600000.00 / took2 / configManager.data.meter_loops_count_2;
+    Serial.print(dash.data.kW_2);
     Serial.print(" kW @ ");
     Serial.print(took2);
     Serial.println("ms");
@@ -902,7 +418,7 @@ void calcPower2(void) {
     Serial.print(loops_actual_2);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_2);
-    
+
     if (loops_actual_2 < configManager.data.meter_loops_count_2) {
       loops_actual_2++;
     } else {
@@ -910,11 +426,11 @@ void calcPower2(void) {
       loops_actual_2 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_2 :");
     Serial.print(configManager.data.meter_counter_reading_2);
     Serial.println(" KWh");
-  
+
   } else {
     startup2=false;
   }
@@ -925,8 +441,8 @@ void calcPower3(void) {
   lastmillis3 = pendingmillis3;
 
   if (!startup3) {
-    dash.data.Leistung_Zaehler3 = 3600000.00 / took3 / configManager.data.meter_loops_count_3;
-    Serial.print(dash.data.Leistung_Zaehler3);
+    dash.data.kW_3 = 3600000.00 / took3 / configManager.data.meter_loops_count_3;
+    Serial.print(dash.data.kW_3);
     Serial.print(" kW @ ");
     Serial.print(took3);
     Serial.println("ms");
@@ -942,7 +458,7 @@ void calcPower3(void) {
     Serial.print(loops_actual_3);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_3);
-    
+
     if (loops_actual_3 < configManager.data.meter_loops_count_3) {
       loops_actual_3++;
     } else {
@@ -950,11 +466,11 @@ void calcPower3(void) {
       loops_actual_3 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_3 :");
     Serial.print(configManager.data.meter_counter_reading_3);
     Serial.println(" KWh");
-  
+
   } else {
     startup3=false;
   }
@@ -965,8 +481,8 @@ void calcPower4(void) {
   lastmillis4 = pendingmillis4;
 
   if (!startup4) {
-    dash.data.Leistung_Zaehler4 = 3600000.00 / took4 / configManager.data.meter_loops_count_4;
-    Serial.print(dash.data.Leistung_Zaehler4);
+    dash.data.kW_4 = 3600000.00 / took4 / configManager.data.meter_loops_count_4;
+    Serial.print(dash.data.kW_4);
     Serial.print(" kW @ ");
     Serial.print(took4);
     Serial.println("ms");
@@ -982,7 +498,7 @@ void calcPower4(void) {
     Serial.print(loops_actual_4);
     Serial.print(" / ");
     Serial.println(configManager.data.meter_loops_count_4);
-    
+
     if (loops_actual_4 < configManager.data.meter_loops_count_4) {
       loops_actual_4++;
     } else {
@@ -990,14 +506,43 @@ void calcPower4(void) {
       loops_actual_4 = 1;
       saveConfig = true;
     }
-    
+
     Serial.print("meter_counter_reading_4 :");
     Serial.print(configManager.data.meter_counter_reading_4);
     Serial.println(" KWh");
-  
+
   } else {
     startup4=false;
   }
+}
+
+// update Dashboard with current measurement values
+void updateDashboard()
+{
+  dash.data.kWh_1 = configManager.data.meter_counter_reading_1;
+  dash.data.kWh_2 = configManager.data.meter_counter_reading_2;
+  dash.data.kWh_3 = configManager.data.meter_counter_reading_3;
+  dash.data.kWh_4 = configManager.data.meter_counter_reading_4;
+
+  dash.data.revolutions_1 = loops_actual_1;
+  dash.data.revolutions_2 = loops_actual_2;
+  dash.data.revolutions_3 = loops_actual_3;
+  dash.data.revolutions_4 = loops_actual_4;
+}
+
+// update Dashboard with graph plot data, only necessary when client is connected
+void updateDashboardGraph()
+{
+  int rssi = WiFi.RSSI();
+  sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
+  dash.data.WLAN_RSSI = WiFi.RSSI();
+
+  dash.data.Sensor = analogRead(analogInPin);
+
+  dash.data.Impuls_Z1 = lastState1;
+  dash.data.Impuls_Z2 = lastState2;
+  dash.data.Impuls_Z3 = lastState3;
+  dash.data.Impuls_Z4 = lastState4;
 }
 
 // ### End Subroutines
@@ -1011,7 +556,7 @@ void setup() {
   configManager.begin();
   WiFiManager.begin(configManager.data.projectName);
   timeSync.begin();
-  dash.begin(500);
+  dash.begin(taskB.rate);
 
   // WiFi
   WiFi.hostname(configManager.data.wifi_hostname);
@@ -1031,18 +576,15 @@ void setup() {
   Serial.print("IP-address : ");
   Serial.println(ip);
 
-  String VERSION = F("v.0.95");
-  int str_len = VERSION.length() + 1;
-  VERSION.toCharArray(dash.data.Version,str_len);
-
   MQTTclient.setServer(configManager.data.mqtt_server, configManager.data.mqtt_port);
-  MQTTclient.setCallback(callback);
+  MQTTclient.setCallback(parseMQTTmessage);
   MQTTclient.setBufferSize(320); // TODO: maybe we can calculate this based on the largest assumed request + its parameters?
 
-  dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
-  dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
-  dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
-  dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
+  memcpy(dash.data.Version, "v.0.96", 6);
+  updateDashboard();
+
+  // activate port for status LED
+  pinMode(LED_BUILTIN, OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
   attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
@@ -1062,72 +604,48 @@ void loop() {
   if (taskA.previous == 0 || (millis() - taskA.previous > taskA.rate)) {
     taskA.previous = millis();
     if (WiFi.status() == WL_CONNECTED) {
-      int rssi = 0;
-      rssi = WiFi.RSSI();
-      sprintf(dash.data.Wifi_RSSI, "%d", rssi) ;
-      dash.data.WLAN_RSSI = WiFi.RSSI();
-
-      dash.data.KWh_Zaehler1 = configManager.data.meter_counter_reading_1;
-      dash.data.KWh_Zaehler2 = configManager.data.meter_counter_reading_2;
-      dash.data.KWh_Zaehler3 = configManager.data.meter_counter_reading_3;
-      dash.data.KWh_Zaehler4 = configManager.data.meter_counter_reading_4;
-      dash.data.loops_actual_1 = loops_actual_1;
-      dash.data.loops_actual_2 = loops_actual_2;
-      dash.data.loops_actual_3 = loops_actual_3;
-      dash.data.loops_actual_4 = loops_actual_4;
-                
+      updateDashboard();
       checkMQTTconnection();
 
       if (mqttPublishTime <= configManager.data.mqtt_interval) {
         mqttPublishTime++;
       } else {
-        PublishMQTT();
+        publishMQTT();
         mqttPublishTime = 0;
-
-        /***
-        Serial.println(F("Publish to MQTT Server"));
-        Serial.print(F("meter_kw_1: "));
-        Serial.print(dash.data.Leistung_Zaehler1);
-        Serial.println(" KW");
-        Serial.print("loops_actual_1: ");
-        Serial.print(loops_actual_1);
-        Serial.print(" / ");
-        Serial.println(configManager.data.meter_loops_count_1);
-        Serial.print("meter_counter_reading_1: ");
-        Serial.print(configManager.data.meter_counter_reading_1);
-        Serial.println(" KWh");
-        ***/
       }
     }
   }
 
   if (taskB.previous == 0 || (millis() - taskB.previous > taskB.rate)) {
     taskB.previous = millis();
-    dash.data.Sensor = analogRead(analogInPin);
+    if (GUI.ws.count() > 0) // only when clients are connected to web-server
+      updateDashboardGraph();
+
+    digitalWrite(LED_BUILTIN, (WiFi.status() == WL_CONNECTED));
   }
 
-  if (debouncePrevious1 == 0 || (millis() - debouncePrevious1 > configManager.data.debounce_1)) {
+  if (debouncePrevious1 == 0 || (millis() - debouncePrevious1 > configManager.data.meter_debounce_1)) {
     debouncePrevious1 = millis();
     if (debStat1) {
       debStat1 = false;
     }
   }
 
-  if (debouncePrevious2 == 0 || (millis() - debouncePrevious2 > configManager.data.debounce_2)) {
+  if (debouncePrevious2 == 0 || (millis() - debouncePrevious2 > configManager.data.meter_debounce_2)) {
     debouncePrevious2 = millis();
     if (debStat2) {
       debStat2 = false;
     }
   }
 
-  if (debouncePrevious3 == 0 || (millis() - debouncePrevious3 > configManager.data.debounce_3)) {
+  if (debouncePrevious3 == 0 || (millis() - debouncePrevious3 > configManager.data.meter_debounce_3)) {
     debouncePrevious3 = millis();
     if (debStat3) {
       debStat3 = false;
     }
   }
 
-  if (debouncePrevious4 == 0 || (millis() - debouncePrevious4 > configManager.data.debounce_4)) {
+  if (debouncePrevious4 == 0 || (millis() - debouncePrevious4 > configManager.data.meter_debounce_4)) {
     debouncePrevious4 = millis();
     if (debStat4) {
       debStat4 = false;
@@ -1147,22 +665,19 @@ void loop() {
     calcPower4();
     calcPower4Stat = false;
   }
-  
+
   if (saveConfig) {
+    Serial.println("[SAVE]...");
     saveConfig = false;
     detachInterrupt(digitalPinToInterrupt(IRPIN1));
     detachInterrupt(digitalPinToInterrupt(IRPIN2));
     detachInterrupt(digitalPinToInterrupt(IRPIN3));
     detachInterrupt(digitalPinToInterrupt(IRPIN4));
-    configManager.save();
+    configManager.save();   // may take ~50ms
     attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
     attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
     attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
     attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
+    Serial.println("...[SAVE finished]");
   }
-
-  dash.data.Impuls_Z1 = lastState1;
-  dash.data.Impuls_Z2 = lastState2;
-  dash.data.Impuls_Z3 = lastState3;
-  dash.data.Impuls_Z4 = lastState4;
 }
