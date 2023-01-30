@@ -1,4 +1,6 @@
+#include "ferraris.h"
 #include "mqtt_subscribe.h"
+
 #include "configManager.h"
 
 
@@ -37,13 +39,13 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
     debounceTimeCmdTopic = getSetTopicName(i+1, "Entprellzeit");
 
     if (t == ukwhCmdTopic){
-      int16_t meters_per_loop = p.toInt();
+      uint16_t meters_per_loop = p.toInt();
       switch (i+1) {
         case 1:
           Serial.print("Setting configManager.data.meter_loops_count_1 to ");
           Serial.print(meters_per_loop);
           Serial.println();
-          configManager.data.meter_loops_count_1=meters_per_loop;
+          configManager.data.meter_loops_count_1 = meters_per_loop;
           saveConfig = true;
           processed  = true;
           break;
@@ -51,7 +53,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.meter_loops_count_2 to ");
           Serial.print(meters_per_loop);
           Serial.println();
-          configManager.data.meter_loops_count_2=meters_per_loop;
+          configManager.data.meter_loops_count_2 = meters_per_loop;
           saveConfig = true;
           processed  = true;
           break;
@@ -59,7 +61,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.meter_loops_count_3 to ");
           Serial.print(meters_per_loop);
           Serial.println();
-          configManager.data.meter_loops_count_3=meters_per_loop;
+          configManager.data.meter_loops_count_3 = meters_per_loop;
           saveConfig = true;
           processed  = true;
           break;
@@ -67,7 +69,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.meter_loops_count_4 to ");
           Serial.print(meters_per_loop);
           Serial.println();
-          configManager.data.meter_loops_count_4=meters_per_loop;
+          configManager.data.meter_loops_count_4 = meters_per_loop;
           saveConfig = true;
           processed  = true;
           break;
@@ -82,13 +84,13 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
     }
 
     if (t == kwhCmdTopic) {
-      int16_t meter_value = p.toInt();
+      float meter_value = p.toFloat();
       switch (i+1) {
         case 1:
           Serial.print("Setting configManager.data.meter_counter_reading_1 to ");
           Serial.print(meter_value);
           Serial.println();
-          configManager.data.meter_counter_reading_1=meter_value;
+          configManager.data.meter_counter_reading_1 = meter_value;
           saveConfig = true;
           processed  = true;
           break;
@@ -96,7 +98,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.meter_counter_reading_2 to ");
           Serial.print(meter_value);
           Serial.println();
-          configManager.data.meter_counter_reading_2=meter_value;
+          configManager.data.meter_counter_reading_2 = meter_value;
           saveConfig = true;
           processed  = true;
           break;
@@ -104,7 +106,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.meter_counter_reading_3 to ");
           Serial.print(meter_value);
           Serial.println();
-          configManager.data.meter_counter_reading_3=meter_value;
+          configManager.data.meter_counter_reading_3 = meter_value;
           saveConfig = true;
           processed  = true;
           break;
@@ -112,7 +114,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
           Serial.print("Setting configManager.data.meter_counter_reading_4 to ");
           Serial.print(meter_value);
           Serial.println();
-          configManager.data.meter_counter_reading_4=meter_value;
+          configManager.data.meter_counter_reading_4 = meter_value;
           saveConfig = true;
           processed  = true;
           break;
@@ -127,7 +129,7 @@ void parseMQTTmessage(char* topic, byte* payload, unsigned int length)
     }
 
     if (t == debounceTimeCmdTopic) {
-      int16_t debounce_value = p.toInt();
+      uint16_t debounce_value = p.toInt();
       switch (i+1) {
         case 1:
           Serial.print("Setting configManager.data.debounce_1 to ");
