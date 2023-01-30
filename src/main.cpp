@@ -15,6 +15,19 @@
   The ESP firmware update can be done via "Over-The-Air".
 
   History
+  Ver. 0.97 (202302xx)
+  - use "Ferraris" objects to capsule code and state for each meter
+  - allow 1..7 meters just by one #define
+  - switch from [kW] -> [W] for live consumption, so we do not need float there
+  - use the count of revolutions as source of total consumption [kWh] to allow fractional part there and no float in IRQ handler
+
+  Ver. 0.96 (20230130)
+  - first part of code refactoring: split into multiple source files
+  - use header lines in Dashboard and Configuration for more structured view
+  - minor changes to improve stability
+  - use blue LED to show lost WiFi
+  - fix: value of analog sensor in Dashboard
+
   Ver. 0.95 (20230121)
   - Fixed: WiFi automatic reconnect after WiFi loss
   - Fixed: prevent watchdog reboot during long running MQTT update
@@ -279,7 +292,7 @@ void setup() {
   MQTTclient.setCallback(parseMQTTmessage);
   MQTTclient.setBufferSize(320); // TODO: maybe we can calculate this based on the largest assumed request + its parameters?
 
-  memcpy(dash.data.Version, "v.0.96", 6);
+  memcpy(dash.data.Version, "v.0.97", 6);
 
   // activate port for status LED
   pinMode(LED_BUILTIN, OUTPUT);
