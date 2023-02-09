@@ -65,14 +65,14 @@
     {
         "name": "revolutions_1",
         "label": "Umdrehungen [U]",
-        "type": "int16_t",
+        "type": "uint32_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "kW_1",
-        "label": "Leistung [kW]",
-        "type": "float",
+        "name": "W_1",
+        "label": "Leistung [W]",
+        "type": "uint16_t",
         "digits": 3,
         "direction": "display"
     },
@@ -90,14 +90,14 @@
     {
         "name": "revolutions_2",
         "label": "Umdrehungen [U]",
-        "type": "int16_t",
+        "type": "uint32_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "kW_2",
-        "label": "Leistung [kW]",
-        "type": "float",
+        "name": "W_2",
+        "label": "Leistung [W]",
+        "type": "uint16_t",
         "digits": 3,
         "direction": "display"
     },
@@ -115,14 +115,14 @@
     {
         "name": "revolutions_3",
         "label": "Umdrehungen [U]",
-        "type": "int16_t",
+        "type": "uint32_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "kW_3",
-        "label": "Leistung [kW]",
-        "type": "float",
+        "name": "W_3",
+        "label": "Leistung [W]",
+        "type": "uint16_t",
         "digits": 3,
         "direction": "display"
     },
@@ -140,14 +140,14 @@
     {
         "name": "revolutions_4",
         "label": "Umdrehungen [U]",
-        "type": "int16_t",
+        "type": "uint32_t",
         "length": 5,
         "direction": "display"
     },
     {
-        "name": "kW_4",
-        "label": "Leistung [kW]",
-        "type": "float",
+        "name": "W_4",
+        "label": "Leistung [W]",
+        "type": "uint16_t",
         "digits": 3,
         "direction": "display"
     },

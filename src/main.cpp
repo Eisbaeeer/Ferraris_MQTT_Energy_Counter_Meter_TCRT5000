@@ -15,6 +15,19 @@
   The ESP firmware update can be done via "Over-The-Air".
 
   History
+  Ver. 0.97 (202302xx)
+  - use "Ferraris" objects to capsule code and state for each meter
+  - allow 1..7 meters just by one #define
+  - switch from [kW] -> [W] for live consumption, so we do not need float there
+  - use the count of revolutions as source of total consumption [kWh] to allow fractional part there and no float in IRQ handler
+
+  Ver. 0.96 (20230130)
+  - first part of code refactoring: split into multiple source files
+  - use header lines in Dashboard and Configuration for more structured view
+  - minor changes to improve stability
+  - use blue LED to show lost WiFi
+  - fix: value of analog sensor in Dashboard
+
   Ver. 0.95 (20230121)
   - Fixed: WiFi automatic reconnect after WiFi loss
   - Fixed: prevent watchdog reboot during long running MQTT update
@@ -80,18 +93,6 @@
   - Over the air update of firmware
   - 4 meter counter (IR-Input pins)
 
- * Used pins
- * Internal LED       (D0) GPIO 16
- * IR Pin Messure 1   (D1) GPIO 05
- * IR Pin Messure 2   (D2) GPIO 04
- * IR Pin Messure 3   (D3) GPIO 00
- * free               (D4) GPIO 02
- * IR Pin Messure 4   (D5) GPIO 14
- * free               (D6) GPIO 12
- * free               (D7) GPIO 13
- * free               (D8) GPIO 15
- * free               (SDD3) GPIO 10
- *
 *********/
 #include <Arduino.h>
 #include <PubSubClient.h>
@@ -102,45 +103,13 @@
 #include "configManager.h"
 #include "dashboard.h"
 #include "timeSync.h"
+#include <time.h>    // time() ctime()
 #include <ArduinoJson.h>
 
+#include "ferraris.h"
 #include "mqtt_subscribe.h"
 #include "mqtt_publish.h"
 
-#define MINTIME 2    //in 10ms = 20ms
-
-bool lastState1 = 1;  // 0 = Silver->Red; 1 = Red->Silver
-bool lastState2 = 1;
-bool lastState3 = 1;
-bool lastState4 = 1;
-unsigned long lastmillis1 = 0;
-unsigned long pendingmillis1 = 0;
-unsigned long lastmillis2 = 0;
-unsigned long pendingmillis2 = 0;
-unsigned long lastmillis3 = 0;
-unsigned long pendingmillis3 = 0;
-unsigned long lastmillis4 = 0;
-unsigned long pendingmillis4 = 0;
-bool inbuf1[MINTIME];
-bool inbuf2[MINTIME];
-bool inbuf3[MINTIME];
-bool inbuf4[MINTIME];
-bool startup1=true;
-bool startup2=true;
-bool startup3=true;
-bool startup4=true;
-bool calcPower1Stat;
-bool calcPower2Stat;
-bool calcPower3Stat;
-bool calcPower4Stat;
-bool debStat1;
-bool debStat2;
-bool debStat3;
-bool debStat4;
-int loops_actual_1 = 0;
-int loops_actual_2 = 0;
-int loops_actual_3 = 0;
-int loops_actual_4 = 0;
 const int analogInPin = A0;   // ESP8266 Analog Pin ADC0 = A0
 
 int mqttPublishTime;          // last publish time in seconds
@@ -159,375 +128,109 @@ struct task
 task taskA = { .rate = 1000, .previous = 0 };
 task taskB = { .rate =  200, .previous = 0 };
 
-unsigned long debouncePrevious1 = 0;
-unsigned long debouncePrevious2 = 0;
-unsigned long debouncePrevious3 = 0;
-unsigned long debouncePrevious4 = 0;
 
-// ### Begin Subroutines
-// IR-Sensor Subs
-bool getInput(uint8_t pin) {
-  byte inchk=0;
-  for (byte i=0; i < 5; i++) {
-    inchk += digitalRead(pin);
-    delay(2);
-  }
-  if (inchk >= 3) return 1;
-  return 0;
-}
+// ----------------------------------------------------------------------------
+// helper functions
+// ----------------------------------------------------------------------------
 
-bool procInput1(bool state) {
-  byte inchk=0;
-  //Array shift
-  for (byte k = MINTIME-2; (k >= 0 && k < MINTIME); k--) {
-    inbuf1[k+1] = inbuf1[k];
-    inchk += inbuf1[k];
-  }
-
-  //New value
-  inbuf1[0] = state;
-  inchk += state;
-
-  //Return average
-  if (inchk > MINTIME/2) return 1;
-  return 0;
-}
-
-bool procInput2(bool state) {
-  byte inchk=0;
-  //Array shift
-  for (byte k = MINTIME-2; (k >= 0 && k < MINTIME); k--) {
-    inbuf2[k+1] = inbuf2[k];
-    inchk += inbuf2[k];
-  }
-
-  //New value
-  inbuf2[0] = state;
-  inchk += state;
-
-  //Return average
-  if (inchk > MINTIME/2) return 1;
-  return 0;
-}
-
-bool procInput3(bool state) {
-  byte inchk=0;
-  //Array shift
-  for (byte k = MINTIME-2; (k >= 0 && k < MINTIME); k--) {
-    inbuf3[k+1] = inbuf3[k];
-    inchk += inbuf3[k];
-  }
-
-  //New value
-  inbuf3[0] = state;
-  inchk += state;
-
-  //Return average
-  if (inchk > MINTIME/2) return 1;
-  return 0;
-}
-
-bool procInput4(bool state) {
-  byte inchk=0;
-  //Array shift
-  for (byte k = MINTIME-2; (k >= 0 && k < MINTIME); k--) {
-    inbuf4[k+1] = inbuf4[k];
-    inchk += inbuf4[k];
-  }
-
-  //New value
-  inbuf4[0] = state;
-  inchk += state;
-
-  //Return average
-  if (inchk > MINTIME/2) return 1;
-  return 0;
-}
-
-void IRAM_ATTR IRSensorHandle1(void) {
-
-   // IR Sensors
-  bool cur1 = getInput(IRPIN1);
-  cur1 = procInput1(cur1);
-
-  if (!debStat1) {
-    switch (lastState1) {
-      case 0: //Silver; Waiting for transition to red
-        if (cur1 != SILVER1) {
-          lastState1 = true;
-          pendingmillis1 = millis();
-          calcPower1Stat = true;
-          debouncePrevious1 = millis();
-          debStat1 = true;
-        }
-        break;
-      case 1: //Red; Waiting for transition to silver
-        if (cur1 != RED1) {
-          lastState1=false;
-          debouncePrevious1 = millis();
-          debStat1 = true;
-        }
-        break;
-    }
-  }
-}
-
-void IRAM_ATTR IRSensorHandle2(void) {
-
-   // IR Sensors
-  bool cur2 = getInput(IRPIN2);
-  cur2 = procInput2(cur2);
-
-  if (!debStat2) {
-    switch(lastState2) {
-    case 0: //Silver; Waiting for transition to red
-      if (cur2 != SILVER2) {
-        lastState2=true;
-        pendingmillis2 = millis();
-        calcPower2Stat = true;
-        debouncePrevious2 = millis();
-        debStat2 = true;
-      }
-      break;
-    case 1: //Red; Waiting for transition to silver
-      if (cur2 != RED2) {
-        lastState2=false;
-        debouncePrevious2 = millis();
-        debStat2 = true;
-      }
-      break;
-  }
-  }
-}
-
-void IRAM_ATTR IRSensorHandle3(void) {
-
-   // IR Sensors
-  bool cur3 = getInput(IRPIN3);
-  cur3 = procInput3(cur3);
-
-  if (!debStat3) {
-    switch (lastState3) {
-      case 0: //Silver; Waiting for transition to red
-        if (cur3 != SILVER3) {
-          lastState3=true;
-          pendingmillis3 = millis();
-          calcPower3Stat = true;
-          debouncePrevious3 = millis();
-          debStat3 = true;
-        }
-        break;
-      case 1: //Red; Waiting for transition to silver
-        if (cur3 != RED3) {
-          lastState3=false;
-          debouncePrevious3 = millis();
-          debStat3 = true;
-        }
-        break;
-    }
-  }
-}
-
-void IRAM_ATTR IRSensorHandle4(void) {
-
-   // IR Sensors
-  bool cur4 = getInput(IRPIN4);
-  cur4 = procInput4(cur4);
-
-  if (!debStat4) {
-    switch (lastState4) {
-      case 0: //Silver; Waiting for transition to red
-        if (cur4 != SILVER4) {
-          lastState4=true;
-          pendingmillis4 = millis();
-          calcPower4Stat = true;
-          debouncePrevious4 = millis();
-          debStat4 = true;
-        }
-        break;
-      case 1: //Red; Waiting for transition to silver
-        if (cur4 != RED4) {
-          lastState4=false;
-          debouncePrevious4 = millis();
-          debStat4 = true;
-        }
-        break;
-    }
-  }
-}
-
-void calcPower1(void) {
-  unsigned long took1 = pendingmillis1 - lastmillis1;
-  lastmillis1 = pendingmillis1;
-
-  if (!startup1) {
-    dash.data.kW_1 = 3600000.00 / took1 / configManager.data.meter_loops_count_1;
-    Serial.print(dash.data.kW_1);
-    Serial.print(" kW @ ");
-    Serial.print(took1);
-    Serial.println("ms");
-
-    /***
-    // adding float to meter count
-    float delta_meter1 = 1.0 / configManager.data.meter_loops_count_1;
-    configManager.data.meter_counter_reading_1 += delta_meter1;
-    ***/
-
-    // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
-    Serial.print("loops_actual_1 :");
-    Serial.print(loops_actual_1);
-    Serial.print(" / ");
-    Serial.println(configManager.data.meter_loops_count_1);
-
-    if (loops_actual_1 < configManager.data.meter_loops_count_1) {
-      loops_actual_1++;
-    } else {
-      configManager.data.meter_counter_reading_1++;
-      loops_actual_1 = 1;
-      saveConfig = true;
-    }
-
-    Serial.print("meter_counter_reading_1 :");
-    Serial.print(configManager.data.meter_counter_reading_1);
-    Serial.println(" KWh");
-
-  } else {
-    startup1=false;
-  }
-}
-
-void calcPower2(void) {
-  unsigned long took2 = pendingmillis2 - lastmillis2;
-  lastmillis2 = pendingmillis2;
-
-  if (!startup2) {
-    dash.data.kW_2 = 3600000.00 / took2 / configManager.data.meter_loops_count_2;
-    Serial.print(dash.data.kW_2);
-    Serial.print(" kW @ ");
-    Serial.print(took2);
-    Serial.println("ms");
-
-    /***
-    // adding float to meter count
-    float delta_meter2 = 1.0 / configManager.data.meter_loops_count_2;
-    configManager.data.meter_counter_reading_2 += delta_meter2;
-    ***/
-
-    // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
-    Serial.print("loops_actual_2 :");
-    Serial.print(loops_actual_2);
-    Serial.print(" / ");
-    Serial.println(configManager.data.meter_loops_count_2);
-
-    if (loops_actual_2 < configManager.data.meter_loops_count_2) {
-      loops_actual_2++;
-    } else {
-      configManager.data.meter_counter_reading_2++;
-      loops_actual_2 = 1;
-      saveConfig = true;
-    }
-
-    Serial.print("meter_counter_reading_2 :");
-    Serial.print(configManager.data.meter_counter_reading_2);
-    Serial.println(" KWh");
-
-  } else {
-    startup2=false;
-  }
-}
-
-void calcPower3(void) {
-  unsigned long took3 = pendingmillis3 - lastmillis3;
-  lastmillis3 = pendingmillis3;
-
-  if (!startup3) {
-    dash.data.kW_3 = 3600000.00 / took3 / configManager.data.meter_loops_count_3;
-    Serial.print(dash.data.kW_3);
-    Serial.print(" kW @ ");
-    Serial.print(took3);
-    Serial.println("ms");
-
-    /***
-    // adding float to meter count
-    float delta_meter3 = 1.0 / configManager.data.meter_loops_count_3;
-    configManager.data.meter_counter_reading_3 += delta_meter3;
-    ***/
-
-    // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
-    Serial.print("loops_actual_3 :");
-    Serial.print(loops_actual_3);
-    Serial.print(" / ");
-    Serial.println(configManager.data.meter_loops_count_3);
-
-    if (loops_actual_3 < configManager.data.meter_loops_count_3) {
-      loops_actual_3++;
-    } else {
-      configManager.data.meter_counter_reading_3++;
-      loops_actual_3 = 1;
-      saveConfig = true;
-    }
-
-    Serial.print("meter_counter_reading_3 :");
-    Serial.print(configManager.data.meter_counter_reading_3);
-    Serial.println(" KWh");
-
-  } else {
-    startup3=false;
-  }
-}
-
-void calcPower4(void) {
-  unsigned long took4 = pendingmillis4 - lastmillis4;
-  lastmillis4 = pendingmillis4;
-
-  if (!startup4) {
-    dash.data.kW_4 = 3600000.00 / took4 / configManager.data.meter_loops_count_4;
-    Serial.print(dash.data.kW_4);
-    Serial.print(" kW @ ");
-    Serial.print(took4);
-    Serial.println("ms");
-
-    /***
-    // adding float to meter count
-    float delta_meter4 = 1.0 / configManager.data.meter_loops_count_4;
-    configManager.data.meter_counter_reading_4 += delta_meter4;
-    ***/
-
-    // check if one KWh is gone (75 rpm then ++ kwh) and store values in file-system
-    Serial.print("loops_actual_4 :");
-    Serial.print(loops_actual_4);
-    Serial.print(" / ");
-    Serial.println(configManager.data.meter_loops_count_4);
-
-    if (loops_actual_4 < configManager.data.meter_loops_count_4) {
-      loops_actual_4++;
-    } else {
-      configManager.data.meter_counter_reading_4++;
-      loops_actual_4 = 1;
-      saveConfig = true;
-    }
-
-    Serial.print("meter_counter_reading_4 :");
-    Serial.print(configManager.data.meter_counter_reading_4);
-    Serial.println(" KWh");
-
-  } else {
-    startup4=false;
-  }
+void copyConfig2Ferraris()
+{
+  Ferraris::getInstance(0).set_U_kWh      (configManager.data.meter_loops_count_1);
+  Ferraris::getInstance(0).set_revolutions(configManager.data.meter_counter_reading_1 * configManager.data.meter_loops_count_1);
+  Ferraris::getInstance(0).set_debounce   (configManager.data.meter_debounce_1);
+#if FERRARIS_NUM > 1
+  Ferraris::getInstance(1).set_U_kWh      (configManager.data.meter_loops_count_2);
+  Ferraris::getInstance(1).set_revolutions(configManager.data.meter_counter_reading_2 * configManager.data.meter_loops_count_2);
+  Ferraris::getInstance(1).set_debounce   (configManager.data.meter_debounce_2);
+#endif
+#if FERRARIS_NUM > 2
+  Ferraris::getInstance(2).set_U_kWh      (configManager.data.meter_loops_count_3);
+  Ferraris::getInstance(2).set_revolutions(configManager.data.meter_counter_reading_3 * configManager.data.meter_loops_count_3);
+  Ferraris::getInstance(2).set_debounce   (configManager.data.meter_debounce_3);
+#endif
+#if FERRARIS_NUM > 3
+  Ferraris::getInstance(3).set_U_kWh      (configManager.data.meter_loops_count_4);
+  Ferraris::getInstance(3).set_revolutions(configManager.data.meter_counter_reading_4 * configManager.data.meter_loops_count_4);
+  Ferraris::getInstance(3).set_debounce   (configManager.data.meter_debounce_4);
+#endif
+#if FERRARIS_NUM > 4
+  Ferraris::getInstance(4).set_U_kWh      (configManager.data.meter_loops_count_5);
+  Ferraris::getInstance(4).set_revolutions(configManager.data.meter_counter_reading_5 * configManager.data.meter_loops_count_5);
+  Ferraris::getInstance(4).set_debounce   (configManager.data.meter_debounce_5;
+#endif
+#if FERRARIS_NUM > 5
+  Ferraris::getInstance(5).set_U_kWh      (configManager.data.meter_loops_count_6);
+  Ferraris::getInstance(5).set_revolutions(configManager.data.meter_counter_reading_6 * configManager.data.meter_loops_count_6);
+  Ferraris::getInstance(5).set_debounce   (configManager.data.meter_debounce_6);
+#endif
+#if FERRARIS_NUM > 6
+  Ferraris::getInstance(6).set_U_kWh      (configManager.data.meter_loops_count_7);
+  Ferraris::getInstance(6).set_revolutions(configManager.data.meter_counter_reading_7 * configManager.data.meter_loops_count_7);
+  Ferraris::getInstance(6).set_debounce   (configManager.data.meter_debounce_7);
+#endif
 }
 
 // update Dashboard with current measurement values
-void updateDashboard()
+void updateDashboard(uint8_t F)
 {
-  dash.data.kWh_1 = configManager.data.meter_counter_reading_1;
-  dash.data.kWh_2 = configManager.data.meter_counter_reading_2;
-  dash.data.kWh_3 = configManager.data.meter_counter_reading_3;
-  dash.data.kWh_4 = configManager.data.meter_counter_reading_4;
+  assert(F < FERRARIS_NUM);
 
-  dash.data.revolutions_1 = loops_actual_1;
-  dash.data.revolutions_2 = loops_actual_2;
-  dash.data.revolutions_3 = loops_actual_3;
-  dash.data.revolutions_4 = loops_actual_4;
+  switch (F) {
+    case 0:
+      dash.data.revolutions_1 = Ferraris::getInstance(0).get_revolutions();
+      dash.data.kWh_1         = Ferraris::getInstance(0).get_kWh();
+      dash.data.W_1           = Ferraris::getInstance(0).get_W();
+      configManager.data.meter_counter_reading_1 = Ferraris::getInstance(0).get_kWh();
+      break;
+#if FERRARIS_NUM > 1
+    case 1:
+      dash.data.revolutions_2 = Ferraris::getInstance(1).get_revolutions();
+      dash.data.kWh_2         = Ferraris::getInstance(1).get_kWh();
+      dash.data.W_2           = Ferraris::getInstance(1).get_W();
+      configManager.data.meter_counter_reading_2 = Ferraris::getInstance(1).get_kWh();
+      break;
+#endif
+#if FERRARIS_NUM > 2
+    case 2:
+      dash.data.revolutions_3 = Ferraris::getInstance(2).get_revolutions();
+      dash.data.kWh_3         = Ferraris::getInstance(2).get_kWh();
+      dash.data.W_3           = Ferraris::getInstance(2).get_W();
+      configManager.data.meter_counter_reading_3 = Ferraris::getInstance(2).get_kWh();
+      break;
+#endif
+#if FERRARIS_NUM > 3
+    case 3:
+      dash.data.revolutions_4 = Ferraris::getInstance(3).get_revolutions();
+      dash.data.kWh_4         = Ferraris::getInstance(3).get_kWh();
+      dash.data.W_4           = Ferraris::getInstance(3).get_W();
+      configManager.data.meter_counter_reading_4 = Ferraris::getInstance(3).get_kWh();
+      break;
+#endif
+#if FERRARIS_NUM > 4
+    case 4:
+      dash.data.revolutions_5 = Ferraris::getInstance(1).get_revolutions();
+      dash.data.kWh_5         = Ferraris::getInstance(1).get_kWh();
+      dash.data.W_5           = Ferraris::getInstance(1).get_W();
+      configManager.data.meter_counter_reading_5 = Ferraris::getInstance(4).get_kWh();
+      break;
+#endif
+#if FERRARIS_NUM > 5
+    case 5:
+      dash.data.revolutions_6 = Ferraris::getInstance(2).get_revolutions();
+      dash.data.kWh_6         = Ferraris::getInstance(2).get_kWh();
+      dash.data.W_6           = Ferraris::getInstance(2).get_W();
+      configManager.data.meter_counter_reading_6 = Ferraris::getInstance(5).get_kWh();
+      break;
+#endif
+#if FERRARIS_NUM > 6
+    case 6:
+      dash.data.revolutions_7 = Ferraris::getInstance(3).get_revolutions();
+      dash.data.kWh_7         = Ferraris::getInstance(3).get_kWh();
+      dash.data.W_7           = Ferraris::getInstance(3).get_W();
+      configManager.data.meter_counter_reading_7 = Ferraris::getInstance(6).get_kWh();
+      break;
+#endif
+  }
 }
 
 // update Dashboard with graph plot data, only necessary when client is connected
@@ -539,13 +242,29 @@ void updateDashboardGraph()
 
   dash.data.Sensor = analogRead(analogInPin);
 
-  dash.data.Impuls_Z1 = lastState1;
-  dash.data.Impuls_Z2 = lastState2;
-  dash.data.Impuls_Z3 = lastState3;
-  dash.data.Impuls_Z4 = lastState4;
-}
+  dash.data.Impuls_Z1 = !Ferraris::getInstance(0).get_state();
+#if FERRARIS_NUM > 1
+  dash.data.Impuls_Z2 = !Ferraris::getInstance(1).get_state();
+#endif
+#if FERRARIS_NUM > 2
+  dash.data.Impuls_Z3 = !Ferraris::getInstance(2).get_state();
+#endif
+#if FERRARIS_NUM > 3
+  dash.data.Impuls_Z4 = !Ferraris::getInstance(3).get_state();
+#endif
+#if FERRARIS_NUM > 4
+  dash.data.Impuls_Z4 = !Ferraris::getInstance(4).get_state();
+#endif
+#if FERRARIS_NUM > 5
+  dash.data.Impuls_Z4 = !Ferraris::getInstance(5).get_state();
+#endif
+#if FERRARIS_NUM > 6
+  dash.data.Impuls_Z4 = !Ferraris::getInstance(6).get_state();
+#endif
 
-// ### End Subroutines
+  for (uint8_t F=0; F<FERRARIS_NUM; F++)
+    updateDashboard(F);
+}
 
 
 void setup() {
@@ -554,43 +273,31 @@ void setup() {
   LittleFS.begin();
   GUI.begin();
   configManager.begin();
+  configManager.setConfigSaveCallback( copyConfig2Ferraris );
+  // WiFi
+  WiFi.hostname(configManager.data.wifi_hostname);
+  WiFi.setAutoReconnect(true);
   WiFiManager.begin(configManager.data.projectName);
   timeSync.begin();
   dash.begin(taskB.rate);
 
-  // WiFi
-  WiFi.hostname(configManager.data.wifi_hostname);
-  WiFi.begin();
-  WiFi.setAutoReconnect(true);
-
   // IR-Sensor
-  pinMode(IRPIN1, INPUT_PULLUP);
-  pinMode(IRPIN2, INPUT_PULLUP);
-  pinMode(IRPIN3, INPUT_PULLUP);
-  pinMode(IRPIN4, INPUT_PULLUP);
-
-  // Printout the IP address
-  IPAddress ip;
-  ip = WiFi.localIP();
-  Serial.println("Connected.");
-  Serial.print("IP-address : ");
-  Serial.println(ip);
+  copyConfig2Ferraris();
+  for (uint8_t F=0; F<FERRARIS_NUM; F++) {
+    Ferraris::getInstance(F).begin();
+    updateDashboard(F);
+  }
 
   MQTTclient.setServer(configManager.data.mqtt_server, configManager.data.mqtt_port);
   MQTTclient.setCallback(parseMQTTmessage);
   MQTTclient.setBufferSize(320); // TODO: maybe we can calculate this based on the largest assumed request + its parameters?
 
-  memcpy(dash.data.Version, "v.0.96", 6);
-  updateDashboard();
+  memcpy(dash.data.Version, "v.0.97", 6);
 
   // activate port for status LED
   pinMode(LED_BUILTIN, OUTPUT);
-
-  attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
 }
+
 
 void loop() {
   // framework things
@@ -600,11 +307,15 @@ void loop() {
   dash.loop();
   MQTTclient.loop();
 
+  for (uint8_t F=0; F<FERRARIS_NUM; F++)
+    if (Ferraris::getInstance(F).loop()) {
+      updateDashboard(F);
+    }
+
   // tasks
   if (taskA.previous == 0 || (millis() - taskA.previous > taskA.rate)) {
     taskA.previous = millis();
     if (WiFi.status() == WL_CONNECTED) {
-      updateDashboard();
       checkMQTTconnection();
 
       if (mqttPublishTime <= configManager.data.mqtt_interval) {
@@ -624,60 +335,10 @@ void loop() {
     digitalWrite(LED_BUILTIN, (WiFi.status() == WL_CONNECTED));
   }
 
-  if (debouncePrevious1 == 0 || (millis() - debouncePrevious1 > configManager.data.meter_debounce_1)) {
-    debouncePrevious1 = millis();
-    if (debStat1) {
-      debStat1 = false;
-    }
-  }
-
-  if (debouncePrevious2 == 0 || (millis() - debouncePrevious2 > configManager.data.meter_debounce_2)) {
-    debouncePrevious2 = millis();
-    if (debStat2) {
-      debStat2 = false;
-    }
-  }
-
-  if (debouncePrevious3 == 0 || (millis() - debouncePrevious3 > configManager.data.meter_debounce_3)) {
-    debouncePrevious3 = millis();
-    if (debStat3) {
-      debStat3 = false;
-    }
-  }
-
-  if (debouncePrevious4 == 0 || (millis() - debouncePrevious4 > configManager.data.meter_debounce_4)) {
-    debouncePrevious4 = millis();
-    if (debStat4) {
-      debStat4 = false;
-    }
-  }
-
-  if (calcPower1Stat) {
-    calcPower1();
-    calcPower1Stat = false;
-  } else if (calcPower2Stat) {
-    calcPower2();
-    calcPower2Stat = false;
-  } else if (calcPower3Stat) {
-    calcPower3();
-    calcPower3Stat = false;
-  } else if (calcPower4Stat) {
-    calcPower4();
-    calcPower4Stat = false;
-  }
-
   if (saveConfig) {
-    Serial.println("[SAVE]...");
+    Serial.println("[save config]...");
     saveConfig = false;
-    detachInterrupt(digitalPinToInterrupt(IRPIN1));
-    detachInterrupt(digitalPinToInterrupt(IRPIN2));
-    detachInterrupt(digitalPinToInterrupt(IRPIN3));
-    detachInterrupt(digitalPinToInterrupt(IRPIN4));
     configManager.save();   // may take ~50ms
-    attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
-    Serial.println("...[SAVE finished]");
+    Serial.println("...[save config]");
   }
 }
