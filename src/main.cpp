@@ -103,6 +103,7 @@
 #include "configManager.h"
 #include "dashboard.h"
 #include "timeSync.h"
+#include <TZ.h>
 #include <time.h>    // time() ctime()
 #include <ArduinoJson.h>
 
@@ -278,7 +279,7 @@ void setup() {
   WiFi.hostname(configManager.data.wifi_hostname);
   WiFi.setAutoReconnect(true);
   WiFiManager.begin(configManager.data.projectName);
-  timeSync.begin();
+  timeSync.begin(TZ_Europe_Berlin);
   dash.begin(taskB.rate);
 
   // IR-Sensor
@@ -298,6 +299,9 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 }
 
+
+time_t now;
+static int last_wifi_status   = -1;
 
 void loop() {
   // framework things
@@ -323,6 +327,32 @@ void loop() {
       } else {
         publishMQTT();
         mqttPublishTime = 0;
+      }
+    }
+    time(&now);               // read the current time
+    tm *tm = localtime(&now); // update the structure tm with the current time
+    if (tm->tm_sec == 0) {
+      // every minute -> check WiFi status
+      if ((last_wifi_status == WL_IDLE_STATUS) && (WiFi.status() == WL_IDLE_STATUS)) {
+        // try to fix stuck WiFi
+        Serial.println("!!! WL_IDLE_STATUS == 0 for a minute !!!");
+        Serial.println("Restart stuck WiFi");
+        ETS_UART_INTR_DISABLE();
+        wifi_station_disconnect();
+        ETS_UART_INTR_ENABLE();
+        WiFi.begin();
+      }
+      last_wifi_status = WiFi.status();
+      if (tm->tm_min % 5 == 0) {
+        // every 5 minutes -> print current time
+        char buffer[20];
+        sprintf(buffer, "%4hu-%02hhu-%02hhu %2hhu:%02hhu",
+                tm->tm_year + 1900,
+                tm->tm_mon + 1,      // January = 0 (!)
+                tm->tm_mday,         // day of month
+                tm->tm_hour,         // hours since midnight  0-23
+                tm->tm_min);         // minutes after the hour  0-59
+        Serial.println(buffer);
       }
     }
   }
