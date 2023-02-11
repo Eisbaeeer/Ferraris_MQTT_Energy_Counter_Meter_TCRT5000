@@ -34,16 +34,17 @@ class Ferraris {
 
   public:
     static Ferraris& getInstance(unsigned char F);
-    
+
     void            begin();
     bool            loop();
 
     void            IRQhandler();
 
-    bool            get_state() const;  // current PIN state
-    int             get_W() const;      // current consumption in W
-    float           get_kW() const;     // current consumption in kW
+    bool            get_state() const;  // actual PIN state
+    int             get_W() const;      // actual consumption in [W]
+    float           get_kW() const;     // actual consumption in [kW]
     float           get_kWh() const;    // total reading of meter
+    int             get_W_average();    // average consumption since last call in [W]
 
     // total revolution count
     unsigned long   get_revolutions() const;
@@ -63,13 +64,17 @@ class Ferraris {
     uint8_t           m_PIN;
     void              (*m_handler)();
     Ferraris::states  m_state;
+    unsigned int      m_config_rev_kWh;   // revolutions per kWh
+    unsigned int      m_config_debounce;  // debounce time [ms]
+
     unsigned long     m_timestamp;
     unsigned long     m_timestampLast1;
     unsigned long     m_timestampLast2;
-    unsigned long     m_revolutions;
-    unsigned int      m_rev_kWh;
-    unsigned int      m_debounce;
-    bool              m_changed;    // something has changed -> give info in loop()
+    unsigned long     m_revolutions;      // total amount of revolutions
+    bool              m_changed;          // something has changed -> give info in loop()
+
+    unsigned long     m_average_timestamp;      // last average call: timestampLast2
+    unsigned long     m_average_revolutions;    // last average call: amount of revolutions
 
     static uint8_t    FINSTANCE; // used to identify instance
 };
