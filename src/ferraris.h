@@ -25,7 +25,8 @@ class Ferraris {
   * IR Pin Messure 6   (D7) GPIO 13    (IO13)      (D7)
   * IR Pin Messure 7   (D8) GPIO 15                (D8)
   */
-    const u_int8_t PINS[7] = {D1, D2, D3, D5, D6, D7, D8};
+    const u_int8_t PINS[7]  = {D1, D2, D3, D5, D6, D7, D8};
+    const u_int8_t DPINS[7] = {D2, D1, D5, D3, D7, D8, D7};
 
   private: // singleton pattern: prevent access to constructors
     Ferraris();
@@ -58,20 +59,27 @@ class Ferraris {
     unsigned int    get_debounce() const;
     void            set_debounce(unsigned int value);
 
+    // config: count mode, single / two way
+    bool            get_twoway() const;
+    void            set_twoway(bool flag);
+
     enum states {startup, silver_debounce, silver, red_debounce, red};
 
   private:
     uint8_t           m_PIN;
+    uint8_t           m_DPIN;
     void              (*m_handler)();
     Ferraris::states  m_state;
     unsigned int      m_config_rev_kWh;   // revolutions per kWh
     unsigned int      m_config_debounce;  // debounce time [ms]
+    bool              m_config_twoway;    // single or dual way counting
 
     unsigned long     m_timestamp;
     unsigned long     m_timestampLast1;
     unsigned long     m_timestampLast2;
     unsigned long     m_revolutions;      // total amount of revolutions
     bool              m_changed;          // something has changed -> give info in loop()
+    short int         m_direction;        // direction of last count
 
     unsigned long     m_average_timestamp;      // last average call: timestampLast2
     unsigned long     m_average_revolutions;    // last average call: amount of revolutions

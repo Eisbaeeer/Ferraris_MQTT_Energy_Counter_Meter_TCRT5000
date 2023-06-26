@@ -15,6 +15,9 @@
   The ESP firmware update can be done via "Over-The-Air".
 
   History
+  Ver. 0.98 (20230617)
+  - combine each two meters to allow backwards counting with two IR detectors on same meter
+
   Ver. 0.97 (202302xx)
   - use "Ferraris" objects to capsule code and state for each meter
   - allow 1..7 meters just by one #define
@@ -139,35 +142,42 @@ void copyConfig2Ferraris()
   Ferraris::getInstance(0).set_U_kWh      (configManager.data.meter_loops_count_1);
   Ferraris::getInstance(0).set_revolutions(configManager.data.meter_counter_reading_1 * configManager.data.meter_loops_count_1);
   Ferraris::getInstance(0).set_debounce   (configManager.data.meter_debounce_1);
+  Ferraris::getInstance(0).set_twoway     (configManager.data.meter_twoway_1);
 #if FERRARIS_NUM > 1
   Ferraris::getInstance(1).set_U_kWh      (configManager.data.meter_loops_count_2);
   Ferraris::getInstance(1).set_revolutions(configManager.data.meter_counter_reading_2 * configManager.data.meter_loops_count_2);
   Ferraris::getInstance(1).set_debounce   (configManager.data.meter_debounce_2);
+  Ferraris::getInstance(1).set_twoway     (configManager.data.meter_twoway_2);
 #endif
 #if FERRARIS_NUM > 2
   Ferraris::getInstance(2).set_U_kWh      (configManager.data.meter_loops_count_3);
   Ferraris::getInstance(2).set_revolutions(configManager.data.meter_counter_reading_3 * configManager.data.meter_loops_count_3);
   Ferraris::getInstance(2).set_debounce   (configManager.data.meter_debounce_3);
+  Ferraris::getInstance(2).set_twoway     (configManager.data.meter_twoway_3);
 #endif
 #if FERRARIS_NUM > 3
   Ferraris::getInstance(3).set_U_kWh      (configManager.data.meter_loops_count_4);
   Ferraris::getInstance(3).set_revolutions(configManager.data.meter_counter_reading_4 * configManager.data.meter_loops_count_4);
   Ferraris::getInstance(3).set_debounce   (configManager.data.meter_debounce_4);
+  Ferraris::getInstance(3).set_twoway     (configManager.data.meter_twoway_4);
 #endif
 #if FERRARIS_NUM > 4
   Ferraris::getInstance(4).set_U_kWh      (configManager.data.meter_loops_count_5);
   Ferraris::getInstance(4).set_revolutions(configManager.data.meter_counter_reading_5 * configManager.data.meter_loops_count_5);
   Ferraris::getInstance(4).set_debounce   (configManager.data.meter_debounce_5;
+  Ferraris::getInstance(4).set_twoway     (configManager.data.meter_twoway_5);
 #endif
 #if FERRARIS_NUM > 5
   Ferraris::getInstance(5).set_U_kWh      (configManager.data.meter_loops_count_6);
   Ferraris::getInstance(5).set_revolutions(configManager.data.meter_counter_reading_6 * configManager.data.meter_loops_count_6);
   Ferraris::getInstance(5).set_debounce   (configManager.data.meter_debounce_6);
+  Ferraris::getInstance(5).set_twoway     (configManager.data.meter_twoway_6);
 #endif
 #if FERRARIS_NUM > 6
   Ferraris::getInstance(6).set_U_kWh      (configManager.data.meter_loops_count_7);
   Ferraris::getInstance(6).set_revolutions(configManager.data.meter_counter_reading_7 * configManager.data.meter_loops_count_7);
   Ferraris::getInstance(6).set_debounce   (configManager.data.meter_debounce_7);
+  Ferraris::getInstance(6).set_twoway     (configManager.data.meter_twoway_7);
 #endif
 }
 
@@ -282,7 +292,7 @@ void setup() {
   timeSync.begin(TZ_Europe_Berlin);
   dash.begin(taskB.rate);
 
-  // IR-Sensor
+  // IR-Sensor initial configuration
   copyConfig2Ferraris();
   for (uint8_t F=0; F<FERRARIS_NUM; F++) {
     Ferraris::getInstance(F).begin();
@@ -293,7 +303,7 @@ void setup() {
   MQTTclient.setCallback(parseMQTTmessage);
   MQTTclient.setBufferSize(320); // TODO: maybe we can calculate this based on the largest assumed request + its parameters?
 
-  memcpy(dash.data.Version, "v.0.97", 6);
+  memcpy(dash.data.Version, "v.0.98", 6);
 
   // activate port for status LED
   pinMode(LED_BUILTIN, OUTPUT);
