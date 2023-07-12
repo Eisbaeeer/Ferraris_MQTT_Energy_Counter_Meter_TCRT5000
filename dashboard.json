@@ -17,20 +17,6 @@
         "direction": "display"
     },
     {
-        "name": "WLAN_RSSI",
-        "type": "int8_t",
-        "direction": "display",
-        "display": "graph",
-        "xaxis": 50
-    },
-    {
-        "name": "Sensor",
-        "type": "int16_t",
-        "direction": "display",
-        "display": "graph",
-        "xaxis": 50
-    },
-    {
         "name": "Impuls_Z1",
         "type": "bool",
         "direction": "display",
@@ -72,7 +58,7 @@
     {
         "name": "W_1",
         "label": "Leistung [W]",
-        "type": "uint16_t",
+        "type": "int16_t",
         "digits": 3,
         "direction": "display"
     },
@@ -97,7 +83,7 @@
     {
         "name": "W_2",
         "label": "Leistung [W]",
-        "type": "uint16_t",
+        "type": "int16_t",
         "digits": 3,
         "direction": "display"
     },
@@ -122,7 +108,7 @@
     {
         "name": "W_3",
         "label": "Leistung [W]",
-        "type": "uint16_t",
+        "type": "int16_t",
         "digits": 3,
         "direction": "display"
     },
@@ -147,7 +133,7 @@
     {
         "name": "W_4",
         "label": "Leistung [W]",
-        "type": "uint16_t",
+        "type": "int16_t",
         "digits": 3,
         "direction": "display"
     },
@@ -157,5 +143,19 @@
         "type": "float",
         "digits": 1,
         "direction": "display"
+    },
+    {
+        "name": "Sensor",
+        "type": "int16_t",
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 50
+    },
+    {
+        "name": "WLAN_RSSI",
+        "type": "int8_t",
+        "direction": "display",
+        "display": "graph",
+        "xaxis": 50
     }
 ]

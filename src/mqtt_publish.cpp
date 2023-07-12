@@ -40,12 +40,6 @@ String getSetTopicName(int meter, String measurement) {
 
 // declare some external stuff -> todo: better refactoring
 extern PubSubClient MQTTclient;
-/*
-void IRAM_ATTR IRSensorHandle1();
-void IRAM_ATTR IRSensorHandle2();
-void IRAM_ATTR IRSensorHandle3();
-void IRAM_ATTR IRSensorHandle4();
-*/
 
 static int mqttReconnect;   // timeout for reconnecting MQTT Server
 
@@ -55,12 +49,6 @@ void checkMQTTconnection(void)
     mqttReconnect = 0;    // reset reconnect timeout
     // reconnect to MQTT Server
     if (!MQTTclient.connected()) {
-      /*
-      detachInterrupt(digitalPinToInterrupt(IRPIN1));
-      detachInterrupt(digitalPinToInterrupt(IRPIN2));
-      detachInterrupt(digitalPinToInterrupt(IRPIN3));
-      detachInterrupt(digitalPinToInterrupt(IRPIN4));
-      */
       dash.data.MQTT_Connected = false;
       Serial.println("Attempting MQTT connection...");
       // Create a random client ID
@@ -94,12 +82,6 @@ void checkMQTTconnection(void)
         Serial.print(MQTTclient.state());
         Serial.println(" try again in one minute");
       }
-      /*
-      attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-      attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-      attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-      attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
-      */
     }
   }
 }
@@ -108,135 +90,132 @@ void checkMQTTconnection(void)
 #define MSG_BUFFER_SIZE	(20)
 char message_buffer[MSG_BUFFER_SIZE];
 
-void publishMQTT(void)
+void publishMQTT_HA(void)
 {
-  /*
-  detachInterrupt(digitalPinToInterrupt(IRPIN1));
-  detachInterrupt(digitalPinToInterrupt(IRPIN2));
-  detachInterrupt(digitalPinToInterrupt(IRPIN3));
-  detachInterrupt(digitalPinToInterrupt(IRPIN4));
-  */
-
   String topic;
   String cmdTopic;
   String haTopic;
-  if (configManager.data.home_assistant_auto_discovery) {
-    StaticJsonDocument<240> discoverDocument;
-    char discoverJson[240];
-    char uniqueId[30];
-    String meterName;
-    ESP.wdtFeed();  // keep WatchDog alive
-    for (int i = 0; i < 4; i++) {
-      // kW
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
+  StaticJsonDocument<240> discoverDocument;
+  char discoverJson[240];
+  char uniqueId[30];
+  String meterName;
+  ESP.wdtFeed();  // keep WatchDog alive
+  for (int i = 0; i < 4; i++) {
+    // kW
+    discoverDocument.clear();
+    memset(discoverJson, 0, sizeof(discoverJson));
+    memset(uniqueId, 0, sizeof(uniqueId));
 
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "kw", i+1);
-      topic = getTopicName(i+1, "KW");
-      meterName = "Zähler "+String(i+1)+" kW";
+    snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "kw", i+1);
+    topic = getTopicName(i+1, "KW");
+    meterName = "Zähler "+String(i+1)+" kW";
 
-      discoverDocument["dev_cla"] = "power";
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "kW";
-      discoverDocument["val_tpl"] = "{{value}}";
+    discoverDocument["dev_cla"] = "power";
+    discoverDocument["uniq_id"] = uniqueId;
+    discoverDocument["name"] = meterName;
+    discoverDocument["stat_t"] = topic;
+    discoverDocument["unit_of_meas"] = "kW";
+    discoverDocument["val_tpl"] = "{{value}}";
 
-      serializeJson(discoverDocument, discoverJson);
+    serializeJson(discoverDocument, discoverJson);
 
-      haTopic = getHATopicName("sensor", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish kw "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-
-      // kWh / Stand
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
-
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "kwh", i+1);
-      topic = getTopicName(i+1, "Stand");
-      meterName = "Zähler "+String(i+1)+" kW/h";
-      cmdTopic = getSetTopicName(i+1, "Stand");
-
-      discoverDocument["dev_cla"] = "energy";
-      discoverDocument["cmd_t"] = cmdTopic;
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "kWh";
-      discoverDocument["val_tpl"] = "{{value}}";
-
-      serializeJson(discoverDocument, discoverJson);
-
-      haTopic = getHATopicName("sensor", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish kwh "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-
-      // Umdrehungen/kWh
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "ukwh", i+1);
-      topic = getTopicName(i+1, "UKWh");
-      meterName = "Zähler "+String(i+1)+" Umdrehungen/kWh";
-      cmdTopic = getSetTopicName(i+1, "UKWh");
-
-      discoverDocument["cmd_t"] = cmdTopic;
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "Umdrehungen/kWh";
-      discoverDocument["val_tpl"] = "{{value}}";
-      discoverDocument["max"] = 512;
-
-      serializeJson(discoverDocument, discoverJson);
-
-      haTopic = getHATopicName("number", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish ukwh "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-
-      // Entprellzeit
-      discoverDocument.clear();
-      memset(discoverJson, 0, sizeof(discoverJson));
-      memset(uniqueId, 0, sizeof(uniqueId));
-      snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "entprellzeit", i+1);
-      topic = getTopicName(i+1, "Entprellzeit");
-      meterName = "Zähler "+String(i+1)+" Entprellzeit";
-      cmdTopic = getSetTopicName(i+1, "Entprellzeit");
-
-      discoverDocument["cmd_t"] = cmdTopic;
-      discoverDocument["uniq_id"] = uniqueId;
-      discoverDocument["name"] = meterName;
-      discoverDocument["stat_t"] = topic;
-      discoverDocument["unit_of_meas"] = "ms";
-      discoverDocument["val_tpl"] = "{{value}}";
-      discoverDocument["max"] = 200; // TODO: Is this a reasonable maximum value?
-
-      serializeJson(discoverDocument, discoverJson);
-
-      haTopic = getHATopicName("number", uniqueId);
-      if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
-        Serial.print("failed to publish debounce time "+String(i+1)+" discover json:");
-        Serial.println();
-        Serial.print(discoverJson);
-        Serial.println();
-      }
-      ESP.wdtFeed();  // keep WatchDog alive
+    haTopic = getHATopicName("sensor", uniqueId);
+    if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
+      Serial.print("failed to publish kw "+String(i+1)+" discover json:");
+      Serial.println();
+      Serial.print(discoverJson);
+      Serial.println();
     }
+
+    // kWh / Stand
+    discoverDocument.clear();
+    memset(discoverJson, 0, sizeof(discoverJson));
+    memset(uniqueId, 0, sizeof(uniqueId));
+
+    snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "kwh", i+1);
+    topic = getTopicName(i+1, "Stand");
+    meterName = "Zähler "+String(i+1)+" kW/h";
+    cmdTopic = getSetTopicName(i+1, "Stand");
+
+    discoverDocument["dev_cla"] = "energy";
+    discoverDocument["cmd_t"] = cmdTopic;
+    discoverDocument["uniq_id"] = uniqueId;
+    discoverDocument["name"] = meterName;
+    discoverDocument["stat_t"] = topic;
+    discoverDocument["unit_of_meas"] = "kWh";
+    discoverDocument["val_tpl"] = "{{value}}";
+
+    serializeJson(discoverDocument, discoverJson);
+
+    haTopic = getHATopicName("sensor", uniqueId);
+    if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
+      Serial.print("failed to publish kwh "+String(i+1)+" discover json:");
+      Serial.println();
+      Serial.print(discoverJson);
+      Serial.println();
+    }
+
+    // Umdrehungen/kWh
+    discoverDocument.clear();
+    memset(discoverJson, 0, sizeof(discoverJson));
+    memset(uniqueId, 0, sizeof(uniqueId));
+    snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "ukwh", i+1);
+    topic = getTopicName(i+1, "UKWh");
+    meterName = "Zähler "+String(i+1)+" Umdrehungen/kWh";
+    cmdTopic = getSetTopicName(i+1, "UKWh");
+
+    discoverDocument["cmd_t"] = cmdTopic;
+    discoverDocument["uniq_id"] = uniqueId;
+    discoverDocument["name"] = meterName;
+    discoverDocument["stat_t"] = topic;
+    discoverDocument["unit_of_meas"] = "Umdrehungen/kWh";
+    discoverDocument["val_tpl"] = "{{value}}";
+    discoverDocument["max"] = 512;
+
+    serializeJson(discoverDocument, discoverJson);
+
+    haTopic = getHATopicName("number", uniqueId);
+    if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
+      Serial.print("failed to publish ukwh "+String(i+1)+" discover json:");
+      Serial.println();
+      Serial.print(discoverJson);
+      Serial.println();
+    }
+
+    // Entprellzeit
+    discoverDocument.clear();
+    memset(discoverJson, 0, sizeof(discoverJson));
+    memset(uniqueId, 0, sizeof(uniqueId));
+    snprintf_P(uniqueId, sizeof(uniqueId), PSTR("%06X_%s_%d"), ESP.getChipId(), "entprellzeit", i+1);
+    topic = getTopicName(i+1, "Entprellzeit");
+    meterName = "Zähler "+String(i+1)+" Entprellzeit";
+    cmdTopic = getSetTopicName(i+1, "Entprellzeit");
+
+    discoverDocument["cmd_t"] = cmdTopic;
+    discoverDocument["uniq_id"] = uniqueId;
+    discoverDocument["name"] = meterName;
+    discoverDocument["stat_t"] = topic;
+    discoverDocument["unit_of_meas"] = "ms";
+    discoverDocument["val_tpl"] = "{{value}}";
+    discoverDocument["max"] = 200; // TODO: Is this a reasonable maximum value?
+
+    serializeJson(discoverDocument, discoverJson);
+
+    haTopic = getHATopicName("number", uniqueId);
+    if (!MQTTclient.publish(haTopic.c_str(), discoverJson, true)) {
+      Serial.print("failed to publish debounce time "+String(i+1)+" discover json:");
+      Serial.println();
+      Serial.print(discoverJson);
+      Serial.println();
+    }
+    ESP.wdtFeed();  // keep WatchDog alive
   }
+}
+
+
+void publishMQTT_simple()
+{
+  String topic;
 
   // Meter #1
   topic = getTopicName(1, "Stand");
@@ -244,7 +223,7 @@ void publishMQTT(void)
   MQTTclient.publish(topic.c_str(), message_buffer, true);
 
   topic = getTopicName(1, "W");
-  dtostrf(Ferraris::getInstance(0).get_W(), 1, 1, message_buffer);
+  dtostrf(Ferraris::getInstance(0).get_W_average(), 1, 1, message_buffer);
   MQTTclient.publish(topic.c_str(), message_buffer, false);
 
   topic = getTopicName(1, "UKWh");
@@ -261,7 +240,7 @@ void publishMQTT(void)
   MQTTclient.publish(topic.c_str(), message_buffer, true);
 
   topic = getTopicName(2, "W");
-  dtostrf(Ferraris::getInstance(1).get_W(), 1, 1, message_buffer);
+  dtostrf(Ferraris::getInstance(1).get_W_average(), 1, 1, message_buffer);
   MQTTclient.publish(topic.c_str(), message_buffer, false);
 
   topic = getTopicName(2, "UKWh");
@@ -278,7 +257,7 @@ void publishMQTT(void)
   MQTTclient.publish(topic.c_str(), message_buffer, true);
 
   topic = getTopicName(3, "W");
-  dtostrf(Ferraris::getInstance(2).get_W(), 1, 1, message_buffer);
+  dtostrf(Ferraris::getInstance(2).get_W_average(), 1, 1, message_buffer);
   MQTTclient.publish(topic.c_str(), message_buffer, false);
 
   topic = getTopicName(3, "UKWh");
@@ -295,7 +274,7 @@ void publishMQTT(void)
   MQTTclient.publish(topic.c_str(), message_buffer, true);
 
   topic = getTopicName(4, "W");
-  dtostrf(Ferraris::getInstance(3).get_W(), 1, 1, message_buffer);
+  dtostrf(Ferraris::getInstance(3).get_W_average(), 1, 1, message_buffer);
   MQTTclient.publish(topic.c_str(), message_buffer, false);
 
   topic = getTopicName(4, "UKWh");
@@ -305,11 +284,14 @@ void publishMQTT(void)
   topic = getTopicName(4, "Entprellzeit");
   itoa(configManager.data.meter_debounce_4, message_buffer, 10);
   MQTTclient.publish(topic.c_str(), message_buffer, true);
+}
 
-  /*
-  attachInterrupt(digitalPinToInterrupt(IRPIN1), IRSensorHandle1, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN2), IRSensorHandle2, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN3), IRSensorHandle3, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(IRPIN4), IRSensorHandle4, CHANGE);
-  */
+
+void publishMQTT(void)
+{
+  if (configManager.data.home_assistant_auto_discovery) {
+    publishMQTT_HA();
+  }
+
+  publishMQTT_simple();
 }

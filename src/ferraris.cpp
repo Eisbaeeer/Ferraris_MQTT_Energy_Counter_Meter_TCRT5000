@@ -41,14 +41,21 @@ uint8_t Ferraris::FINSTANCE = 0;
 // private constructor
 Ferraris::Ferraris()
   : m_state(startup)
+  , m_config_rev_kWh(75)
+  , m_config_debounce(80)
+  , m_config_twoway(false)
   , m_timestamp(millis())
+  , m_timestampLast1(0)
+  , m_timestampLast2(0)
   , m_revolutions(0)
-  , m_rev_kWh(75)
-  , m_debounce(80)
   , m_changed(false)
+  , m_direction(+1)
+  , m_average_timestamp(0)
+  , m_average_revolutions(0)
 {
   uint8_t F = Ferraris::FINSTANCE++;
-  m_PIN = Ferraris::PINS[F];
+  m_PIN  = Ferraris::PINS[F];
+  m_DPIN = Ferraris::DPINS[F];
   pinMode(m_PIN, INPUT_PULLUP);
   switch (F) {
     case 0: m_handler = staticInterruptHandler0; break;
@@ -104,14 +111,14 @@ bool Ferraris::loop()
   // wait for debounce time
   int timestamp = millis();
   if (m_state == Ferraris::states::silver_debounce)
-    if ((timestamp - m_timestamp) >= 4*m_debounce) {
+    if ((timestamp - m_timestamp) >= 4*m_config_debounce) {
       m_state = Ferraris::states::silver;
       detachInterrupt(digitalPinToInterrupt(m_PIN));
       attachInterrupt(digitalPinToInterrupt(m_PIN), m_handler, FERRARIS_IRQMODE_RED);
-    }  
+    }
 
   if (m_state == Ferraris::states::red_debounce)
-    if ((timestamp - m_timestamp) >= m_debounce) {
+    if ((timestamp - m_timestamp) >= m_config_debounce) {
       if (digitalRead(m_PIN) == FERRARIS_RED) {
         m_state = Ferraris::states::red;
         detachInterrupt(digitalPinToInterrupt(m_PIN));
@@ -122,7 +129,7 @@ bool Ferraris::loop()
         m_timestamp = timestamp;
         Serial.println("Missed RED->SILVER !");
       }
-    }  
+    }
 
   // return "something has changed" state
   bool retval = m_changed;
@@ -139,16 +146,27 @@ void Ferraris::IRQhandler()
   // silver -> red
   if (m_state == Ferraris::states::silver) {
     m_state = Ferraris::states::red_debounce;
-    m_revolutions++;
-    m_timestampLast2 = m_timestampLast1;
-    m_timestampLast1 = m_timestamp;
-    m_changed = true;
-  }  
+    if ((!m_config_twoway) ||
+        (m_config_twoway && (digitalRead(m_DPIN) == FERRARIS_SILVER))) {
+      m_revolutions++;
+      m_direction = std::min(1, m_direction+1);
+      m_timestampLast2 = m_timestampLast1;
+      m_timestampLast1 = m_timestamp;
+      m_changed = true;
+    }
+  }
 
   // red -> silver
   if (m_state == Ferraris::states::red) {
     m_state = Ferraris::states::silver_debounce;
-  }  
+    if (m_config_twoway && (digitalRead(m_DPIN) == FERRARIS_SILVER)) {
+      m_revolutions--;
+      m_direction = std::max(-1, m_direction-1);
+      m_timestampLast2 = m_timestampLast1;
+      m_timestampLast1 = m_timestamp;
+      m_changed = true;
+    }
+  }
 }
 
 
@@ -168,13 +186,40 @@ bool Ferraris::get_state() const
   }
 }
 
+// get current consumption based on duration of last revolution
 int Ferraris::get_W() const
 {
   unsigned long elapsedtime = m_timestampLast1 - m_timestampLast2;  // last full cycle
   if (elapsedtime == 0) return 0;
   unsigned long runningtime = millis() - m_timestampLast1;          // current open cycle
   // [60 min * 60 sec * 1000 ms] * [1 kW -> 1000 W] / [time for 1kWh]
-  return 3600000000 / (std::max(elapsedtime, runningtime) * m_rev_kWh);  
+  return m_direction * 3600000000 / (std::max(elapsedtime, runningtime) * m_config_rev_kWh);
+}
+
+// get current consumption average since last call
+int Ferraris::get_W_average()
+{
+  // check for very low consumption (less than 2 revolutions per call)
+  if (m_average_timestamp == m_timestampLast1) {
+    return get_W();
+  }
+  if (m_average_timestamp == m_timestampLast2) {
+    m_average_timestamp   = m_timestampLast1;
+    m_average_revolutions = m_revolutions;
+    return get_W();
+  }
+
+  // changes during last average cycle
+  unsigned long elapsedT = m_timestampLast1 - m_average_timestamp;
+    signed long elapsedR = m_revolutions    - m_average_revolutions;
+  if ((elapsedT == 0) || (elapsedR == 0)) return 0;
+
+  // update average state with last capture
+  m_average_timestamp   = m_timestampLast1;
+  m_average_revolutions = m_revolutions;
+
+  // [60 min * 60 sec * 1000 ms] * [1 kW -> 1000 W] / [time for 1kWh]
+  return 3600000000 * elapsedR / (elapsedT * m_config_rev_kWh);
 }
 
 float Ferraris::get_kW() const
@@ -183,12 +228,12 @@ float Ferraris::get_kW() const
   if (elapsedtime == 0) return 0.0f;
   unsigned long runningtime = millis() - m_timestampLast1;          // current open cycle
   // [60 min * 60 sec * 1000 ms] * [1 kW] / [time for 1kWh]
-  return 3600000.0f / (std::max(elapsedtime, runningtime) * m_rev_kWh);  
+  return m_direction * 3600000.0f / (std::max(elapsedtime, runningtime) * m_config_rev_kWh);
 }
 
 float Ferraris::get_kWh() const
 {
-  return float(m_revolutions) / float(m_rev_kWh);
+  return float(m_revolutions) / float(m_config_rev_kWh);
 }
 
 
@@ -209,21 +254,31 @@ void Ferraris::set_revolutions(unsigned long value)
 
 unsigned int Ferraris::get_U_kWh() const
 {
-  return m_rev_kWh;
+  return m_config_rev_kWh;
 }
 
 void Ferraris::set_U_kWh(unsigned int value)
 {
-  m_rev_kWh = value;
+  m_config_rev_kWh = value;
   m_changed = true;
 }
 
 unsigned int Ferraris::get_debounce() const
 {
-  return m_debounce;
+  return m_config_debounce;
 }
 
 void Ferraris::set_debounce(unsigned int value)
 {
-  m_debounce = value;
+  m_config_debounce = value;
+}
+
+bool Ferraris::get_twoway() const
+{
+  return m_config_twoway;
+}
+
+void Ferraris::set_twoway(bool flag)
+{
+  m_config_twoway = flag;
 }
